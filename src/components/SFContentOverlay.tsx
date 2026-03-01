@@ -1,10 +1,7 @@
 import { useState } from "react";
 
-import {
-  HeartIcon,
-  PaperPlaneRightIcon,
-  EyeIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import { PaperPlaneRightIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
+import Heart from "./Heart";
 
 import { cn } from "../util/ui";
 
@@ -12,28 +9,32 @@ import type { SFContent } from "../types/sf";
 
 const labelFormatter = new Intl.NumberFormat("en", { notation: "compact" });
 
+function stopPropagation(e: React.PointerEvent) {
+  e.stopPropagation();
+}
+
 function InteractionButton({
   icon,
   label,
-  onClick,
 }: {
   icon: React.ReactNode;
   label: number;
-  onClick?: () => void;
 }) {
   const labelText = labelFormatter.format(label);
 
   return (
-    <button
+    <div
       className="flex flex-col items-center gap-1.5"
       style={{
         filter: "drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.35))",
       }}
-      onClick={onClick}
+      onPointerDown={stopPropagation}
+      onPointerMove={stopPropagation}
+      onPointerUp={stopPropagation}
     >
       {icon}
       <span className="text-xs">{labelText}</span>
-    </button>
+    </div>
   );
 }
 
@@ -41,10 +42,6 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
   const { title, description, tags } = content;
 
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-
-  function stopPropagation(e: React.PointerEvent) {
-    e.stopPropagation();
-  }
 
   return (
     <div className="sf-content-overlay absolute inset-0 z-10 flex items-end gap-4 p-4 text-sm text-white select-none">
@@ -75,10 +72,7 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
         </p>
       </div>
       <div role="group" className="flex w-6 flex-col items-center gap-6">
-        <InteractionButton
-          icon={<HeartIcon weight="bold" size={24} />}
-          label={103959}
-        />
+        <InteractionButton icon={<Heart />} label={103959} />
         <InteractionButton
           icon={<EyeIcon weight="bold" size={22} />}
           label={103959}
