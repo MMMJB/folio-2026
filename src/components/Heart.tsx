@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { useHaptics } from "../providers/HapticsProvider";
 
 import { HeartIcon } from "@phosphor-icons/react";
 
@@ -12,6 +13,8 @@ export default function Heart({
   onClick?: (active: boolean) => void;
   defaultActive?: boolean;
 }) {
+  const { vibrate } = useHaptics();
+
   const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
   const myConfetti = useRef<confetti.CreateTypes | null>(null);
 
@@ -29,16 +32,14 @@ export default function Heart({
 
   return (
     <button
-      className="group relative cursor-pointer transition-colors before:absolute before:inset-0 before:scale-200"
-      style={{
-        "--fill": "oklch(0.65 0.3 19.41)",
-      }}
+      className="group relative cursor-pointer transition-colors [--fill:oklch(0.65_0.3_19.41)] before:absolute before:inset-0 before:scale-200"
       onClick={() => {
         setActive((p) => {
           const newActive = !p;
           onClick?.(newActive);
 
           if (newActive) {
+            vibrate();
             myConfetti.current?.({
               particleCount: 16,
               spread: 360,
@@ -67,7 +68,7 @@ export default function Heart({
       />
       <div
         className={cn(
-          "absolute inset-0 rounded-full border border-[var(--fill)] transition-all",
+          "absolute inset-0 rounded-full border-2 border-[var(--fill)] transition-all",
           active ? "animate-ping" : "animate-none opacity-0",
         )}
         style={{
