@@ -56,6 +56,9 @@ export default class SFContentManager {
     }
 
     this.t = 0;
+    this.frameIndex = 0;
+    this.updateContainerStyle("--sf-scroll", "0px");
+    this.updateContainerStyle("--sf-active-frame", "0");
   }
 
   private addListeners() {
@@ -65,37 +68,16 @@ export default class SFContentManager {
     window.addEventListener("resize", this.onResize.bind(this), { signal });
 
     this.container.addEventListener(
-      "touchstart",
+      "pointerdown",
       (e) => {
-        this.onTouchStart(e.touches[0].clientY);
-      },
-      { signal },
-    );
-    window.addEventListener(
-      "touchend",
-      (e) => {
-        this.onTouchEnd(e.changedTouches[0].clientY);
-      },
-      { signal },
-    );
-    window.addEventListener(
-      "touchmove",
-      (e) => {
-        this.onTouchMove(e.touches[0].clientY);
-      },
-      { signal },
-    );
-
-    this.container.addEventListener(
-      "mousedown",
-      (e) => {
+        console.log("down");
         this.updateContainerStyle("cursor", "grabbing");
         this.onTouchStart(e.clientY);
       },
       { signal },
     );
     window.addEventListener(
-      "mouseup",
+      "pointerup",
       (e) => {
         this.updateContainerStyle("cursor", "grab");
         this.onTouchEnd(e.clientY);
@@ -103,7 +85,15 @@ export default class SFContentManager {
       { signal },
     );
     window.addEventListener(
-      "mousemove",
+      "pointercancel",
+      (e) => {
+        this.updateContainerStyle("cursor", "grab");
+        this.onTouchEnd(e.clientY);
+      },
+      { signal },
+    );
+    window.addEventListener(
+      "pointermove",
       (e) => {
         this.onTouchMove(e.clientY);
       },
@@ -194,13 +184,14 @@ export default class SFContentManager {
   private onTouchEnd(y: number) {
     if (
       this.touchStartY === null ||
+      this.touchStartT === null ||
       this.frameHeight === null ||
       !this.videoElements
     )
       return;
 
     const dy = y - this.touchStartY;
-    const dt = this.t - (this.touchStartT ?? this.t);
+    const dt = this.t - this.touchStartT;
     const ay = ((dy / this.frameHeight) * 100) / dt / dt;
 
     if (Math.abs(ay) > 0.1) {
@@ -227,6 +218,7 @@ export default class SFContentManager {
     }
 
     this.touchStartY = null;
+    this.touchStartT = null;
   }
 
   private onTouchMove(y: number) {
