@@ -123,19 +123,6 @@ export default class SFContentManager {
       },
       { signal, once: true },
     );
-
-    if (this.videoElements) {
-      this.videoElements.forEach((el) => {
-        el.addEventListener(
-          "click",
-          () => {
-            const video = this.videos.get(el);
-            video?.togglePlay();
-          },
-          { signal },
-        );
-      });
-    }
   }
 
   private updateContainerStyle(k: string, v: string) {
@@ -205,7 +192,12 @@ export default class SFContentManager {
   }
 
   private onTouchEnd(y: number) {
-    if (this.touchStartY === null || this.frameHeight === null) return;
+    if (
+      this.touchStartY === null ||
+      this.frameHeight === null ||
+      !this.videoElements
+    )
+      return;
 
     const dy = y - this.touchStartY;
     const dt = this.t - (this.touchStartT ?? this.t);
@@ -224,7 +216,14 @@ export default class SFContentManager {
         this.scrollToPrev(ay, dy);
       }
     } else {
-      this.cancelScroll(ay, dy);
+      if (dt < 10) {
+        const currentVideo = this.videos.get(
+          this.videoElements[this.frameIndex],
+        );
+        currentVideo?.togglePlay();
+      } else {
+        this.cancelScroll(ay, dy);
+      }
     }
 
     this.touchStartY = null;
