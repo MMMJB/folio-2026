@@ -206,9 +206,9 @@ export default class SFContentManager {
           this.videoElements[this.frameIndex],
         );
         currentVideo?.togglePlay();
-      } else {
-        this.cancelScroll(ay, dy);
       }
+
+      this.cancelScroll(ay, dy);
     }
 
     this.touchStartY = null;
