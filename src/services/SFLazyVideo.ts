@@ -1,4 +1,4 @@
-export default class LazyVideo {
+export default class SFLazyVideo {
   private el: HTMLVideoElement;
   private resetTimeout: number | null = null;
   private isLoaded = false;

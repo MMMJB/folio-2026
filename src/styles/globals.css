@@ -1,1 +1,12 @@
 @import "tailwindcss";
+
+@layer base {
+  html,
+  body {
+    @apply size-full;
+  }
+
+  body {
+    @apply grid place-items-center;
+  }
+}

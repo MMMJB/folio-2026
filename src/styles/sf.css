@@ -1,0 +1,17 @@
+.sf-player {
+  --sf-bg-base: black;
+  --sf-bg-surface: var(--sf-bg-base);
+  --sf-bg-frame: var(--sf-bg-base);
+  --sf-bg-content: var(--sf-bg-base);
+
+  --sf-max-frame-w: min(100dvw, 375px);
+  --sf-max-frame-h: min(100dvh, 667px);
+  --sf-frame-w: min(
+    var(--sf-max-frame-w, 100dvw),
+    calc(var(--sf-max-frame-h, 100dvh) * 9 / 16)
+  );
+  --sf-frame-h: min(
+    var(--sf-max-frame-h, 100dvh),
+    calc(var(--sf-max-frame-w, 100dvw) * 16 / 9)
+  );
+}

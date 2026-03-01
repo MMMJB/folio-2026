@@ -1,11 +1,11 @@
-import LazyVideo from "./LazyVideo";
+import SFLazyVideo from "./SFLazyVideo";
 
 export default class SFContentManager {
   private container: HTMLElement;
   private frameIndex = 0;
   private t = 0;
-  private videos = new WeakMap<HTMLVideoElement, LazyVideo>();
-  private videoElements: NodeListOf<HTMLVideoElement>;
+  private videos = new WeakMap<HTMLVideoElement, SFLazyVideo>();
+  private videoElements: NodeListOf<HTMLVideoElement> | null = null;
   private touchStartY: number | null = null;
   private touchStartT: number | null = null;
   private frameHeight: number | null = null;
@@ -14,12 +14,16 @@ export default class SFContentManager {
 
   constructor(container: HTMLElement) {
     this.container = container;
-    this.videoElements = container.querySelectorAll("video");
 
     this.onResize();
   }
 
   public start() {
+    this.videoElements = this.container.querySelectorAll("video");
+    this.videoElements.forEach((el) => {
+      this.videos.set(el, new SFLazyVideo(el));
+    });
+
     this.addListeners();
 
     let lastFrameTimestamp: number | null = null;
@@ -111,6 +115,27 @@ export default class SFContentManager {
       this.onTransitionEnd.bind(this),
       { signal },
     );
+
+    this.container.addEventListener(
+      "click",
+      () => {
+        this.updateVideoPlaybacks(0);
+      },
+      { signal, once: true },
+    );
+
+    if (this.videoElements) {
+      this.videoElements.forEach((el) => {
+        el.addEventListener(
+          "click",
+          () => {
+            const video = this.videos.get(el);
+            video?.togglePlay();
+          },
+          { signal },
+        );
+      });
+    }
   }
 
   private updateContainerStyle(k: string, v: string) {
@@ -127,14 +152,16 @@ export default class SFContentManager {
 
     const ut = Math.sqrt((2 * dy) / ay) * 5;
     const t = Math.max(Math.min(ut, 300), 150);
-    this.updateContainerStyle("--scroll-transition", `${t}ms`);
-    this.updateContainerStyle("--scroll", "0px");
-    this.updateContainerStyle("--active-frame", `${this.frameIndex}`);
+    this.updateContainerStyle("--sf-scroll-transition", `${t}ms`);
+    this.updateContainerStyle("--sf-scroll", "0px");
+    this.updateContainerStyle("--sf-active-frame", `${this.frameIndex}`);
 
     if (n != 0) this.updateVideoPlaybacks(n);
   }
 
   private updateVideoPlaybacks(n: number) {
+    if (!this.videoElements) return;
+
     const prevVideoIndex = this.frameIndex - n;
     if (prevVideoIndex >= 0 && prevVideoIndex < this.videoElements.length) {
       const prevVideo = this.videos.get(this.videoElements[prevVideoIndex]);
@@ -165,7 +192,7 @@ export default class SFContentManager {
   }
 
   private onTransitionEnd() {
-    this.updateContainerStyle("--scroll-transition", "0ms");
+    this.updateContainerStyle("--sf-scroll-transition", "0ms");
   }
 
   private onResize() {
@@ -209,9 +236,9 @@ export default class SFContentManager {
     const dy = y - this.touchStartY;
 
     if (dy > 0 && this.frameIndex === 0) {
-      this.updateContainerStyle("--scroll", `${Math.pow(dy, 0.7)}px`);
+      this.updateContainerStyle("--sf-scroll", `${Math.pow(dy, 0.7)}px`);
     } else {
-      this.updateContainerStyle("--scroll", `${dy}px`);
+      this.updateContainerStyle("--sf-scroll", `${dy}px`);
     }
   }
 }
