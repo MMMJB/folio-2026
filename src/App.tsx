@@ -1,5 +1,28 @@
 import SFPlayer from "./components/SFPlayer";
 
 export default function App() {
-  return <SFPlayer videos={["1.mp4", "2.mp4", "3.mp4", "4.mp4"]} />;
+  return (
+    <SFPlayer
+      content={[
+        {
+          likes: 101,
+          views: 1240,
+          title: "Video 1",
+          description: "Description for video 1",
+          tags: ["tag1", "tag2"],
+          work: null,
+          src: "1.mp4",
+        },
+        {
+          likes: 202,
+          views: 2480,
+          title: "Video 2",
+          description: "Description for video 2",
+          tags: ["tag3", "tag4"],
+          work: null,
+          src: "2.mp4",
+        },
+      ]}
+    />
+  );
 }

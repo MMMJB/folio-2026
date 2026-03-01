@@ -2,11 +2,12 @@
 
 @layer base {
   html,
-  body {
+  body,
+  #root {
     @apply size-full;
   }
 
-  body {
-    @apply grid place-items-center;
+  #root {
+    @apply grid place-items-center bg-black;
   }
 }

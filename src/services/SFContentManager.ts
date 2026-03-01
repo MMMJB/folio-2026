@@ -67,10 +67,12 @@ export default class SFContentManager {
 
     window.addEventListener("resize", this.onResize.bind(this), { signal });
 
-    this.container.addEventListener(
+    window.addEventListener(
+      // we attach pointerdown to the window instead of the container to avoid react bubbling issues in the overlay
       "pointerdown",
       (e) => {
-        console.log("down");
+        if (!this.container.contains(e.target as Node)) return;
+
         this.updateContainerStyle("cursor", "grabbing");
         this.onTouchStart(e.clientY);
       },
@@ -78,14 +80,6 @@ export default class SFContentManager {
     );
     window.addEventListener(
       "pointerup",
-      (e) => {
-        this.updateContainerStyle("cursor", "grab");
-        this.onTouchEnd(e.clientY);
-      },
-      { signal },
-    );
-    window.addEventListener(
-      "pointercancel",
       (e) => {
         this.updateContainerStyle("cursor", "grab");
         this.onTouchEnd(e.clientY);
