@@ -3,7 +3,6 @@ import SFLazyVideo from "./SFLazyVideo";
 export default class SFContentManager {
   private container: HTMLElement;
   private frameIndex = 0;
-  private t = 0;
   private videos = new WeakMap<HTMLVideoElement, SFLazyVideo>();
   private videoElements: NodeListOf<HTMLVideoElement> | null = null;
   private touchStartY: number | null = null;
@@ -26,18 +25,7 @@ export default class SFContentManager {
 
     this.addListeners();
 
-    let lastFrameTimestamp: number | null = null;
-    const animate = (t: number) => {
-      if (lastFrameTimestamp !== null) {
-        const dt = t - lastFrameTimestamp;
-        if (dt > 16) {
-          this.t++;
-          lastFrameTimestamp = t;
-        }
-      } else {
-        lastFrameTimestamp = t;
-      }
-
+    const animate = () => {
       this.animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -55,7 +43,7 @@ export default class SFContentManager {
       this.abortController = null;
     }
 
-    this.t = 0;
+    this.touchStartT = null;
     this.frameIndex = 0;
     this.updateContainerStyle("--sf-scroll", "0px");
     this.updateContainerStyle("--sf-active-frame", "0");
@@ -68,7 +56,6 @@ export default class SFContentManager {
     window.addEventListener("resize", this.onResize.bind(this), { signal });
 
     window.addEventListener(
-      // we attach pointerdown to the window instead of the container to avoid react bubbling issues in the overlay
       "pointerdown",
       (e) => {
         if (!this.container.contains(e.target as Node)) return;
@@ -121,8 +108,8 @@ export default class SFContentManager {
 
     this.frameIndex += n;
 
-    const ut = Math.sqrt((2 * dy) / ay) * 5;
-    const t = Math.max(Math.min(ut, 300), 150);
+    const ut = Math.sqrt((2 * dy) / ay);
+    const t = Math.max(Math.min(ut, 300), 200);
     this.updateContainerStyle("--sf-scroll-transition", `${t}ms`);
     this.updateContainerStyle("--sf-scroll", "0px");
     this.updateContainerStyle("--sf-active-frame", `${this.frameIndex}`);
@@ -167,12 +154,13 @@ export default class SFContentManager {
   }
 
   private onResize() {
-    this.frameHeight = document.querySelector(".sf-frame")?.clientHeight ?? 0;
+    this.frameHeight =
+      document.querySelector(".sf-frame")?.clientHeight ?? null;
   }
 
   private onTouchStart(y: number) {
     this.touchStartY = y;
-    this.touchStartT = this.t;
+    this.touchStartT = performance.now();
   }
 
   private onTouchEnd(y: number) {
@@ -185,10 +173,10 @@ export default class SFContentManager {
       return;
 
     const dy = y - this.touchStartY;
-    const dt = this.t - this.touchStartT;
-    const ay = ((dy / this.frameHeight) * 100) / dt / dt;
+    const dt = Math.max(performance.now() - this.touchStartT, 16);
+    const ay = ((dy / this.frameHeight) * 100) / dt;
 
-    if (Math.abs(ay) > 0.1) {
+    if (Math.abs(ay) > 0.05) {
       if (ay < 0) {
         this.scrollToNext(ay, dy);
       } else {
@@ -201,7 +189,7 @@ export default class SFContentManager {
         this.scrollToPrev(ay, dy);
       }
     } else {
-      if (dt < 10) {
+      if (dt < 160) {
         const currentVideo = this.videos.get(
           this.videoElements[this.frameIndex],
         );
