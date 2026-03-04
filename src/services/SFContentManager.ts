@@ -8,7 +8,6 @@ export default class SFContentManager {
   private touchStartY: number | null = null;
   private touchStartT: number | null = null;
   private frameHeight: number | null = null;
-  private animationFrameId: number | null = null;
   private abortController: AbortController | null = null;
 
   constructor(container: HTMLElement) {
@@ -24,20 +23,9 @@ export default class SFContentManager {
     });
 
     this.addListeners();
-
-    const animate = () => {
-      this.animationFrameId = requestAnimationFrame(animate);
-    };
-
-    this.animationFrameId = requestAnimationFrame(animate);
   }
 
   public stop() {
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
