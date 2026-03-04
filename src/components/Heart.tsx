@@ -82,7 +82,7 @@ export default function Heart({
           pressing ? "scale-90" : "scale-100",
           active
             ? "animate-jump origin-center text-[var(--fill)]"
-            : "group-hover:animate-wiggle origin-bottom text-white",
+            : "group-hover:animate-wiggle animate-restore origin-bottom text-white",
         )}
         style={{
           transitionTimingFunction: pressing
