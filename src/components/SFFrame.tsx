@@ -29,7 +29,7 @@ export default function SFFrame({
 
   return (
     <div
-      className="sf-frame h-[var(--sf-frame-h)] w-[var(--sf-frame-w)] bg-[var(--sf-bg-frame)] py-0.5 transition-transform ease-out will-change-transform"
+      className="sf-frame h-[var(--sf-frame-h)] w-[var(--sf-frame-w)] bg-[var(--sf-bg-frame)] py-0.5 transition-transform ease-in-out will-change-transform"
       style={{
         transform:
           "translate(0, calc(var(--sf-scroll, 0px) + var(--sf-frame-h) * var(--sf-active-frame, 0) * -1))",
@@ -41,11 +41,16 @@ export default function SFFrame({
         <video
           loop
           playsInline
+          muted
           poster={posterSource}
           preload={forceActive ? "metadata" : "none"}
           width="100%"
           height="auto"
-          className="aspect-video"
+          className="aspect-video translate-z-0 backface-hidden"
+          style={{
+            WebkitTransformStyle: "preserve-3d",
+            WebkitBackfaceVisibility: "hidden",
+          }}
         >
           <source
             src={forceActive ? webmSource : undefined}
