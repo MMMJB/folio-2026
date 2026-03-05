@@ -41,7 +41,7 @@ function InteractionButton({
 export default function SFContentOverlay({ content }: { content: SFContent }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { title, description, tags } = content;
+  const { title, description, tags, likes, views, shares } = content;
 
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
@@ -101,10 +101,10 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
         </p>
       </div>
       <div role="group" className="flex w-6 flex-col items-center gap-6">
-        <InteractionButton icon={<Heart />} label={103959} />
+        <InteractionButton icon={<Heart />} label={likes} />
         <InteractionButton
           icon={<EyeIcon weight="bold" size={22} />}
-          label={103959}
+          label={views}
         />
         <InteractionButton
           icon={
@@ -114,7 +114,7 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
               size={21}
             />
           }
-          label={32598}
+          label={shares}
         />
         <div className="size-6 rounded-lg bg-black outline-[1.5px] outline-white"></div>
       </div>
