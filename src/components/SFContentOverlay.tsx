@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 import { PaperPlaneRightIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
 import Heart from "./Heart";
@@ -39,13 +39,16 @@ function InteractionButton({
 }
 
 export default function SFContentOverlay({ content }: { content: SFContent }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const { title, description, tags } = content;
 
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   return (
     <div
-      className="sf-content-overlay animate-fade-in absolute inset-0 z-10 flex items-end gap-4 p-4 text-sm text-white select-none"
+      ref={containerRef}
+      className="sf-content-overlay absolute inset-0 z-10 flex items-end gap-4 p-4 text-sm text-white select-none"
       // create an overlay for each frame and stack them
       // when this frame is active, show the overlay with scale
       // this is the only reliable way to remove stutter on ios when transitioning
@@ -62,6 +65,8 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
       }}
       onTransitionEnd={(e) => {
         const target = e.target as HTMLElement;
+
+        if (target !== containerRef.current) return;
 
         target.classList.remove("animate-fade-in");
         void target.offsetWidth; // repaint to reset animation
