@@ -97,7 +97,7 @@ export default class SFContentManager {
     this.frameIndex += n;
 
     const ut = Math.sqrt((2 * dy) / ay);
-    const t = Math.max(Math.min(ut, 300), 150);
+    const t = Math.max(Math.min(ut, 500), 150);
     this.updateContainerStyle("--sf-scroll-transition", `${t}ms`);
     this.updateContainerStyle("--sf-scroll", "0px");
     this.updateContainerStyle("--sf-active-frame", `${this.frameIndex}`);
@@ -151,7 +151,6 @@ export default class SFContentManager {
     this.touchStartT = performance.now();
 
     this.updateContainerStyle("--sf-is-scrolling", "1");
-    this.updateContainerStyle("--sf-did-scroll", "0");
   }
 
   private onTouchEnd(y: number) {
@@ -194,7 +193,6 @@ export default class SFContentManager {
     this.touchStartT = null;
 
     this.updateContainerStyle("--sf-is-scrolling", "0");
-    this.updateContainerStyle("--sf-did-scroll", dy === 0 ? "0" : "1");
   }
 
   private onTouchMove(y: number) {

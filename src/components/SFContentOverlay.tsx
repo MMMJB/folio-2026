@@ -49,29 +49,6 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
     <div
       ref={containerRef}
       className="sf-content-overlay absolute inset-0 z-10 flex items-end gap-4 p-4 text-sm text-white select-none"
-      // create an overlay for each frame and stack them
-      // when this frame is active, show the overlay with scale
-      // this is the only reliable way to remove stutter on ios when transitioning
-      // - react re-renders cause stutter
-      // - manual dom updates cause stutter
-      // - opacity changes cause stutter
-      // - layered transforms cause stutter
-      style={{
-        "--is-active":
-          "calc(1 - min(1, abs(calc(var(--frame-index) - var(--sf-active-frame, 0)))))",
-        "--is-not-scrolling": "calc(1 - var(--sf-is-scrolling, 0))",
-        transform: "scale(min(var(--is-active), var(--is-not-scrolling)))",
-        transitionDelay: "max(calc(var(--sf-did-scroll, 0) * 300ms), 100ms)",
-      }}
-      onTransitionEnd={(e) => {
-        const target = e.target as HTMLElement;
-
-        if (target !== containerRef.current) return;
-
-        target.classList.remove("animate-fade-in");
-        void target.offsetWidth; // repaint to reset animation
-        target.classList.add("animate-fade-in");
-      }}
     >
       <div
         className="relative min-w-0 flex-1 cursor-pointer"
@@ -80,7 +57,7 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
         onPointerMove={stopPropagation}
         onPointerUp={stopPropagation}
       >
-        <div className="absolute -inset-16 -top-6 -z-10 bg-black/25 blur-2xl" />
+        {/* <div className="absolute -inset-16 -top-6 -z-10 bg-black/25 blur-2xl" /> */}
         <h3 className="mb-1 font-medium">{title}</h3>
         <p
           className={cn(

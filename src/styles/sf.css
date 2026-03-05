@@ -9,4 +9,17 @@
     var(--sf-max-frame-h, 100dvh),
     calc(var(--sf-max-frame-w, 100dvw) * 16 / 9)
   );
+
+  .sf-frame > * {
+    transform: translate(
+      0,
+      calc(
+        var(--sf-scroll, 0px) + var(--sf-frame-h) * var(--sf-active-frame, 0) *
+          -1
+      )
+    );
+    transition-duration: var(--sf-scroll-transition, 0ms);
+    transition-property: transform;
+    will-change: transform;
+  }
 }

@@ -17,11 +17,9 @@ function getPosterSource(videoName: string) {
 export default function SFFrame({
   forceActive,
   content,
-  frameIndex,
 }: {
   forceActive?: boolean;
   content: SFContent;
-  frameIndex: number;
 }) {
   const { src } = content;
 
@@ -30,12 +28,7 @@ export default function SFFrame({
   const webmSource = getVideoSource(replaceFileExtension(src, ".webm"));
 
   return (
-    <div
-      className="sf-frame h-[var(--sf-frame-h)] w-[var(--sf-frame-w)] bg-black py-0.5 transition-transform ease-in-out"
-      style={{
-        "--frame-index": frameIndex,
-      }}
-    >
+    <div className="sf-frame relative h-[var(--sf-frame-h)] w-[var(--sf-frame-w)] bg-black py-0.5">
       <SFContentOverlay content={content} />
       <video
         loop
@@ -43,15 +36,9 @@ export default function SFFrame({
         muted
         poster={posterSource}
         preload={forceActive ? "metadata" : "none"}
-        className="size-full object-contain transition-transform ease-in-out will-change-transform backface-hidden"
+        className="size-full object-contain backface-hidden"
         width="100%"
         height="100%"
-        style={{
-          WebkitBackfaceVisibility: "hidden",
-          transform:
-            "translate(0, calc(var(--sf-scroll, 0px) + var(--sf-frame-h) * var(--sf-active-frame, 0) * -1))",
-          transitionDuration: "var(--sf-scroll-transition, 0ms)",
-        }}
       >
         <source
           src={forceActive ? webmSource : undefined}

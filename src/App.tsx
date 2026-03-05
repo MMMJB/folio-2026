@@ -9,6 +9,7 @@ export default function App() {
           {
             likes: 101,
             views: 1240,
+            shares: 12,
             title: "Video 1",
             description: "Description for video 1",
             tags: ["tag1", "tag2"],
@@ -18,6 +19,7 @@ export default function App() {
           {
             likes: 202,
             views: 2480,
+            shares: 24,
             title: "Video 2",
             description: "Description for video 2",
             tags: ["tag3", "tag4"],
