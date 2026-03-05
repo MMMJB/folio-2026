@@ -4,6 +4,7 @@
   --animate-wiggle: wiggle 1s ease-in-out infinite forwards;
   --animate-restore: restore 1s ease-in-out forwards;
   --animate-jump: jump 1.5s ease;
+  --animate-fade-in: fade-in 500ms ease-out forwards;
 
   @keyframes wiggle {
     0%,
@@ -42,6 +43,15 @@
     }
     20% {
       transform: scale(1.25) translateY(-2px);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
 }

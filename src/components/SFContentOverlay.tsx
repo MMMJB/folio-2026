@@ -44,7 +44,30 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   return (
-    <div className="sf-content-overlay absolute inset-0 z-10 flex items-end gap-4 p-4 text-sm text-white select-none">
+    <div
+      className="sf-content-overlay animate-fade-in absolute inset-0 z-10 flex items-end gap-4 p-4 text-sm text-white select-none"
+      // create an overlay for each frame and stack them
+      // when this frame is active, show the overlay with scale
+      // this is the only reliable way to remove stutter on ios when transitioning
+      // - no re-renders
+      // - no opacity changes
+      // TODO: try directly manipulating DOM with refs in SFPlayer to avoid separate overlay for each frame
+      style={{
+        "--is-active":
+          "calc(1 - min(1, abs(calc(var(--frame-index) - var(--sf-active-frame)))))",
+        "--is-not-scrolling":
+          "calc(1 - min(round(up, abs(var(--sf-scroll, 0px)), 1px), 1px) / 1px)",
+        transform: "scale(min(var(--is-active), var(--is-not-scrolling)))",
+        transitionDelay: "calc(var(--is-not-scrolling) * 300ms)",
+      }}
+      onTransitionEnd={(e) => {
+        const target = e.target as HTMLElement;
+
+        target.classList.remove("animate-fade-in");
+        void target.offsetWidth; // repaint to reset animation
+        target.classList.add("animate-fade-in");
+      }}
+    >
       <div
         className="relative min-w-0 flex-1 cursor-pointer"
         onClick={() => setDescriptionExpanded((p) => !p)}

@@ -1,9 +1,4 @@
 .sf-player {
-  --sf-bg-base: black;
-  --sf-bg-surface: var(--sf-bg-base);
-  --sf-bg-frame: var(--sf-bg-base);
-  --sf-bg-content: var(--sf-bg-base);
-
   --sf-max-frame-w: min(100dvw, 375px);
   --sf-max-frame-h: min(100dvh, 667px);
   --sf-frame-w: min(

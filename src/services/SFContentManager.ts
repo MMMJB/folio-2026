@@ -97,7 +97,7 @@ export default class SFContentManager {
     this.frameIndex += n;
 
     const ut = Math.sqrt((2 * dy) / ay);
-    const t = Math.max(Math.min(ut, 300), 200);
+    const t = Math.max(Math.min(ut, 300), 150);
     this.updateContainerStyle("--sf-scroll-transition", `${t}ms`);
     this.updateContainerStyle("--sf-scroll", "0px");
     this.updateContainerStyle("--sf-active-frame", `${this.frameIndex}`);
