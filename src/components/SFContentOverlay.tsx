@@ -52,9 +52,10 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
       // create an overlay for each frame and stack them
       // when this frame is active, show the overlay with scale
       // this is the only reliable way to remove stutter on ios when transitioning
-      // - no re-renders
-      // - no opacity changes
-      // TODO: try directly manipulating DOM with refs in SFPlayer to avoid separate overlay for each frame
+      // - react re-renders cause stutter
+      // - manual dom updates cause stutter
+      // - opacity changes cause stutter
+      // - layered transforms cause stutter
       style={{
         "--is-active":
           "calc(1 - min(1, abs(calc(var(--frame-index) - var(--sf-active-frame)))))",
