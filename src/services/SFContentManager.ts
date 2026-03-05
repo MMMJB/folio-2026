@@ -149,6 +149,9 @@ export default class SFContentManager {
   private onTouchStart(y: number) {
     this.touchStartY = y;
     this.touchStartT = performance.now();
+
+    this.updateContainerStyle("--sf-is-scrolling", "1");
+    this.updateContainerStyle("--sf-did-scroll", "0");
   }
 
   private onTouchEnd(y: number) {
@@ -189,6 +192,9 @@ export default class SFContentManager {
 
     this.touchStartY = null;
     this.touchStartT = null;
+
+    this.updateContainerStyle("--sf-is-scrolling", "0");
+    this.updateContainerStyle("--sf-did-scroll", dy === 0 ? "0" : "1");
   }
 
   private onTouchMove(y: number) {

@@ -59,10 +59,9 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
       style={{
         "--is-active":
           "calc(1 - min(1, abs(calc(var(--frame-index) - var(--sf-active-frame, 0)))))",
-        "--is-not-scrolling":
-          "calc(1 - min(round(up, abs(var(--sf-scroll, 0px)), 1px), 1px) / 1px)",
+        "--is-not-scrolling": "calc(1 - var(--sf-is-scrolling, 0))",
         transform: "scale(min(var(--is-active), var(--is-not-scrolling)))",
-        transitionDelay: "calc(var(--is-not-scrolling) * 300ms)",
+        transitionDelay: "max(calc(var(--sf-did-scroll, 0) * 300ms), 100ms)",
       }}
       onTransitionEnd={(e) => {
         const target = e.target as HTMLElement;
