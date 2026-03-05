@@ -58,7 +58,7 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
       // - layered transforms cause stutter
       style={{
         "--is-active":
-          "calc(1 - min(1, abs(calc(var(--frame-index) - var(--sf-active-frame)))))",
+          "calc(1 - min(1, abs(calc(var(--frame-index) - var(--sf-active-frame, 0)))))",
         "--is-not-scrolling":
           "calc(1 - min(round(up, abs(var(--sf-scroll, 0px)), 1px), 1px) / 1px)",
         transform: "scale(min(var(--is-active), var(--is-not-scrolling)))",
