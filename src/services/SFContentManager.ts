@@ -12,6 +12,7 @@ export default class SFContentManager {
   private frameWidth: number | null = null;
   private frameLeft: number | null = null;
   private abortController: AbortController | null = null;
+  private paused = false;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -125,7 +126,12 @@ export default class SFContentManager {
     }
 
     const currentVideo = this.getCurrentVideo();
-    currentVideo?.start();
+
+    if (currentVideo) {
+      currentVideo.start();
+      this.paused = false;
+      this.updateContainerStyle("--sf-paused", "0");
+    }
   }
 
   private getCurrentVideo() {
@@ -174,7 +180,7 @@ export default class SFContentManager {
     if (x >= this.frameLeft + this.frameWidth * 0.85) {
       const currentVideo = this.getCurrentVideo();
 
-      if (currentVideo) {
+      if (currentVideo && !this.paused) {
         currentVideo?.setSpeed(2);
         this.updateContainerStyle("--sf-sped-up", "1");
         vibrate();
@@ -210,7 +216,10 @@ export default class SFContentManager {
       }
     } else {
       if (dt < 160 && Math.abs(dy) < 2) {
-        currentVideo?.togglePlay();
+        if (currentVideo) {
+          this.paused = currentVideo.togglePlay();
+          this.updateContainerStyle("--sf-paused", this.paused ? "1" : "0");
+        }
       }
 
       this.cancelScroll(ay, dy);

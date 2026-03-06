@@ -4,6 +4,7 @@ import {
   PaperPlaneRightIcon,
   EyeIcon,
   FastForwardIcon,
+  PlayIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Heart from "./Heart";
 
@@ -62,6 +63,14 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
       >
         2x speed <FastForwardIcon weight="fill" className="inline-block" />
       </span>
+      <div
+        className="absolute inset-1/2 grid size-12 -translate-1/2 place-items-center rounded-full bg-black/80 backdrop-blur-2xl transition-opacity"
+        style={{
+          opacity: "var(--sf-paused, 0)",
+        }}
+      >
+        <PlayIcon weight="fill" size={20} />
+      </div>
       <div
         className="relative min-w-0 flex-1 cursor-pointer"
         onClick={() => setDescriptionExpanded((p) => !p)}

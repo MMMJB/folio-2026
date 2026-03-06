@@ -57,8 +57,10 @@ export default class SFLazyVideo {
   public togglePlay() {
     if (this.el.paused) {
       this.start();
+      return false;
     } else {
       this.stop(true);
+      return true;
     }
   }
 
