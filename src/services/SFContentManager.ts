@@ -177,7 +177,7 @@ export default class SFContentManager {
         this.scrollToPrev(ay, dy);
       }
     } else {
-      if (dt < 160 || dy === 0) {
+      if (dt < 160 && Math.abs(dy) < 2) {
         const currentVideo = this.videos.get(
           this.videoElements[this.frameIndex],
         );
