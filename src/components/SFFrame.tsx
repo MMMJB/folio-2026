@@ -17,9 +17,11 @@ function getPosterSource(videoName: string) {
 export default function SFFrame({
   forceActive,
   content,
+  frameIndex,
 }: {
   forceActive?: boolean;
   content: SFContent;
+  frameIndex: number;
 }) {
   const { src } = content;
 
@@ -28,7 +30,12 @@ export default function SFFrame({
   const webmSource = getVideoSource(replaceFileExtension(src, ".webm"));
 
   return (
-    <div className="sf-frame relative h-[var(--sf-frame-h)] w-[var(--sf-frame-w)] bg-black py-0.5">
+    <div
+      className="sf-frame relative h-[var(--sf-frame-h)] w-[var(--sf-frame-w)] bg-black py-0.5 transition-opacity"
+      style={{
+        "--frame-index": frameIndex,
+      }}
+    >
       <SFContentOverlay content={content} />
       <video
         loop

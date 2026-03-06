@@ -27,7 +27,7 @@ export default function SFPlayer({ content }: { content: SFContent[] }) {
       className="sf-player h-[var(--sf-frame-h)] cursor-grab touch-none overflow-hidden border-white sm:border"
     >
       {content.map((c, i) => (
-        <SFFrame key={i} content={c} forceActive={i === 0} />
+        <SFFrame key={i} content={c} forceActive={i === 0} frameIndex={i} />
       ))}
     </div>
   );

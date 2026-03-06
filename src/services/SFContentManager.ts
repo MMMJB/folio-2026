@@ -149,8 +149,6 @@ export default class SFContentManager {
   private onTouchStart(y: number) {
     this.touchStartY = y;
     this.touchStartT = performance.now();
-
-    this.updateContainerStyle("--sf-is-scrolling", "1");
   }
 
   private onTouchEnd(y: number) {
@@ -191,8 +189,6 @@ export default class SFContentManager {
 
     this.touchStartY = null;
     this.touchStartT = null;
-
-    this.updateContainerStyle("--sf-is-scrolling", "0");
   }
 
   private onTouchMove(y: number) {
@@ -201,7 +197,7 @@ export default class SFContentManager {
     const dy = y - this.touchStartY;
 
     if (dy > 0 && this.frameIndex === 0) {
-      this.updateContainerStyle("--sf-scroll", `${Math.pow(dy, 0.7)}px`);
+      this.updateContainerStyle("--sf-scroll", `${Math.pow(dy, 0.8)}px`);
     } else {
       this.updateContainerStyle("--sf-scroll", `${dy}px`);
     }
