@@ -1,6 +1,10 @@
 import { useState, useRef } from "react";
 
-import { PaperPlaneRightIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
+import {
+  PaperPlaneRightIcon,
+  EyeIcon,
+  FastForwardIcon,
+} from "@phosphor-icons/react/dist/ssr";
 import Heart from "./Heart";
 
 import { cn } from "../util/ui";
@@ -50,6 +54,14 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
       ref={containerRef}
       className="sf-content-overlay absolute inset-0 z-10 flex items-end gap-4 p-4 text-sm text-white select-none"
     >
+      <span
+        className="absolute top-4 left-1/2 flex -translate-x-1/2 items-center gap-1 font-medium transition-opacity"
+        style={{
+          opacity: "var(--sf-sped-up, 0)",
+        }}
+      >
+        2x speed <FastForwardIcon weight="fill" className="inline-block" />
+      </span>
       <div
         className="relative min-w-0 flex-1 cursor-pointer"
         onClick={() => setDescriptionExpanded((p) => !p)}

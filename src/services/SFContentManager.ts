@@ -173,8 +173,12 @@ export default class SFContentManager {
 
     if (x >= this.frameLeft + this.frameWidth * 0.85) {
       const currentVideo = this.getCurrentVideo();
-      currentVideo?.setSpeed(2);
-      vibrate();
+
+      if (currentVideo) {
+        currentVideo?.setSpeed(2);
+        this.updateContainerStyle("--sf-sped-up", "1");
+        vibrate();
+      }
     }
   }
 
@@ -216,6 +220,7 @@ export default class SFContentManager {
     this.touchStartT = null;
 
     currentVideo?.setSpeed(1);
+    this.updateContainerStyle("--sf-sped-up", "0");
   }
 
   private onTouchMove(y: number) {
