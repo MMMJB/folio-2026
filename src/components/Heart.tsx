@@ -1,10 +1,10 @@
 import { useRef, useState, useEffect } from "react";
-import { useHaptics } from "../providers/HapticsProvider";
 
 import { HeartIcon } from "@phosphor-icons/react";
 
 import { cn } from "../util/ui";
 import confetti from "canvas-confetti";
+import { vibrate } from "../util/haptics";
 
 export default function Heart({
   onClick,
@@ -13,8 +13,6 @@ export default function Heart({
   onClick?: (active: boolean) => void;
   defaultActive?: boolean;
 }) {
-  const { vibrate } = useHaptics();
-
   const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
   const myConfetti = useRef<confetti.CreateTypes | null>(null);
 
