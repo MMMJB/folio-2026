@@ -1,4 +1,5 @@
 import SFLazyVideo from "./SFLazyVideo";
+import { vibrate } from "../util/haptics";
 
 export default class SFContentManager {
   private container: HTMLElement;
@@ -8,6 +9,8 @@ export default class SFContentManager {
   private touchStartY: number | null = null;
   private touchStartT: number | null = null;
   private frameHeight: number | null = null;
+  private frameWidth: number | null = null;
+  private frameLeft: number | null = null;
   private abortController: AbortController | null = null;
 
   constructor(container: HTMLElement) {
@@ -49,7 +52,7 @@ export default class SFContentManager {
         if (!this.container.contains(e.target as Node)) return;
 
         this.updateContainerStyle("cursor", "grabbing");
-        this.onTouchStart(e.clientY);
+        this.onTouchStart(e.clientX, e.clientY);
       },
       { signal },
     );
@@ -121,8 +124,14 @@ export default class SFContentManager {
       nextVideo?.load();
     }
 
-    const currentVideo = this.videos.get(this.videoElements[this.frameIndex]);
+    const currentVideo = this.getCurrentVideo();
     currentVideo?.start();
+  }
+
+  private getCurrentVideo() {
+    if (!this.videoElements) return null;
+
+    return this.videos.get(this.videoElements[this.frameIndex]) ?? null;
   }
 
   private scrollToNext(ay: number, dy: number) {
@@ -142,13 +151,31 @@ export default class SFContentManager {
   }
 
   private onResize() {
-    this.frameHeight =
-      document.querySelector(".sf-frame")?.clientHeight ?? null;
+    const el = document.querySelector(".sf-frame");
+
+    if (!el) throw new Error("No frame element found");
+
+    this.frameHeight = el.clientHeight;
+    this.frameWidth = el.clientWidth;
+    this.frameLeft = el.getBoundingClientRect().left;
   }
 
-  private onTouchStart(y: number) {
+  private onTouchStart(x: number, y: number) {
+    if (
+      this.frameWidth === null ||
+      this.frameHeight === null ||
+      this.frameLeft === null
+    )
+      return;
+
     this.touchStartY = y;
     this.touchStartT = performance.now();
+
+    if (x >= this.frameLeft + this.frameWidth * 0.85) {
+      const currentVideo = this.getCurrentVideo();
+      currentVideo?.setSpeed(2);
+      vibrate();
+    }
   }
 
   private onTouchEnd(y: number) {
@@ -163,6 +190,7 @@ export default class SFContentManager {
     const dy = y - this.touchStartY;
     const dt = Math.max(performance.now() - this.touchStartT, 16);
     const ay = ((dy / this.frameHeight) * 100) / dt;
+    const currentVideo = this.getCurrentVideo();
 
     if (Math.abs(ay) > 0.05) {
       if (ay < 0) {
@@ -178,9 +206,6 @@ export default class SFContentManager {
       }
     } else {
       if (dt < 160 && Math.abs(dy) < 2) {
-        const currentVideo = this.videos.get(
-          this.videoElements[this.frameIndex],
-        );
         currentVideo?.togglePlay();
       }
 
@@ -189,6 +214,8 @@ export default class SFContentManager {
 
     this.touchStartY = null;
     this.touchStartT = null;
+
+    currentVideo?.setSpeed(1);
   }
 
   private onTouchMove(y: number) {

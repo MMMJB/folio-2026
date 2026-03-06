@@ -61,4 +61,8 @@ export default class SFLazyVideo {
       this.stop(true);
     }
   }
+
+  public setSpeed(speed: number) {
+    this.el.playbackRate = speed;
+  }
 }
