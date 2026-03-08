@@ -24,6 +24,16 @@ export default function App() {
           work: null,
           src: "2.mp4",
         },
+        {
+          likes: 303,
+          views: 3720,
+          shares: 36,
+          title: "Video 3",
+          description: "Description for video 3",
+          tags: ["tag5", "tag6"],
+          work: null,
+          src: "3.mp4",
+        },
       ]}
     />
   );

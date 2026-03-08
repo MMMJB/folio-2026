@@ -45,7 +45,10 @@ export default class SFContentManager {
     this.abortController = new AbortController();
     const { signal } = this.abortController;
 
-    window.addEventListener("resize", this.onResize.bind(this), { signal });
+    window.addEventListener("resize", this.onResize.bind(this), {
+      signal,
+      passive: true,
+    });
 
     window.addEventListener(
       "pointerdown",
@@ -55,7 +58,7 @@ export default class SFContentManager {
         this.updateContainerStyle("cursor", "grabbing");
         this.onTouchStart(e.clientX, e.clientY);
       },
-      { signal },
+      { signal, passive: true },
     );
     window.addEventListener(
       "pointerup",
@@ -63,20 +66,20 @@ export default class SFContentManager {
         this.updateContainerStyle("cursor", "grab");
         this.onTouchEnd(e.clientY);
       },
-      { signal },
+      { signal, passive: true },
     );
     window.addEventListener(
       "pointermove",
       (e) => {
         this.onTouchMove(e.clientY);
       },
-      { signal },
+      { signal, passive: true },
     );
 
     this.container.addEventListener(
       "transitionend",
       this.onTransitionEnd.bind(this),
-      { signal },
+      { signal, passive: true },
     );
 
     this.container.addEventListener(
@@ -84,7 +87,7 @@ export default class SFContentManager {
       () => {
         this.updateVideoPlaybacks(0);
       },
-      { signal, once: true },
+      { signal, passive: true, once: true },
     );
   }
 
@@ -183,6 +186,10 @@ export default class SFContentManager {
       if (currentVideo && !this.paused) {
         currentVideo?.setSpeed(2);
         this.updateContainerStyle("--sf-sped-up", "1");
+        // this will never trigger in the current safari version and draft of input[switch]
+        // web haptics require a click event within 2s of activation; touchStart does not count as a click
+        // we cannot click programmatically to get around this
+        // i'm leaving this call here for future revisions of safari
         vibrate();
       }
     }
@@ -238,7 +245,7 @@ export default class SFContentManager {
     const dy = y - this.touchStartY;
 
     if (dy > 0 && this.frameIndex === 0) {
-      this.updateContainerStyle("--sf-scroll", `${Math.pow(dy, 0.8)}px`);
+      this.updateContainerStyle("--sf-scroll", `${Math.pow(dy, 0.7)}px`);
     } else {
       this.updateContainerStyle("--sf-scroll", `${dy}px`);
     }
