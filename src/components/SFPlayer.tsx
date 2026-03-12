@@ -1,6 +1,6 @@
 "use client";
 
-import "../styles/sf.css";
+import "@/styles/sf.css";
 
 import { useRef, useEffect } from "react";
 
