@@ -1,0 +1,55 @@
+.sf-player {
+  --sf-max-frame-w: min(100dvw, 375px);
+  --sf-max-frame-h: min(100dvh, 667px);
+  --sf-frame-w: min(
+    var(--sf-max-frame-w, 100dvw),
+    calc(var(--sf-max-frame-h, 100dvh) * 9 / 16)
+  );
+  --sf-frame-h: min(
+    var(--sf-max-frame-h, 100dvh),
+    calc(var(--sf-max-frame-w, 100dvw) * 16 / 9)
+  );
+
+  .sf-frame {
+    --is-active: calc(
+      1 - min(1, abs(calc(var(--frame-index) - var(--sf-active-frame, 0))))
+    );
+    --scroll-amt: clamp(-1px, var(--sf-scroll, 0px), 1px);
+    --scroll-direction: calc(
+      var(--scroll-amt) / max(abs(var(--scroll-amt)), 1px)
+    );
+    --is-next: min(
+      1,
+      calc(
+        1 -
+          abs(
+            calc(
+              var(--frame-index) + var(--scroll-direction) -
+                var(--sf-active-frame, 0)
+            )
+          )
+      )
+    );
+    opacity: max(
+      var(--is-next),
+      calc(
+        var(--is-active) *
+          (1 - (abs(var(--sf-scroll, 0px)) / var(--sf-frame-h)))
+      )
+    );
+    transition-duration: var(--sf-scroll-transition, 0ms);
+
+    > * {
+      transform: translate(
+        0,
+        calc(
+          var(--sf-scroll, 0px) + var(--sf-frame-h) *
+            var(--sf-active-frame, 0) * -1
+        )
+      );
+      transition-duration: var(--sf-scroll-transition, 0ms);
+      transition-property: transform;
+      will-change: transform;
+    }
+  }
+}
