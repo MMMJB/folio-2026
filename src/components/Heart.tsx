@@ -6,7 +6,6 @@ import { HeartIcon } from "@phosphor-icons/react";
 
 import { cn } from "../util/ui";
 import confetti from "canvas-confetti";
-import { vibrate } from "../util/haptics";
 
 export default function Heart({
   onClick,
@@ -39,7 +38,7 @@ export default function Heart({
           onClick?.(newActive);
 
           if (newActive) {
-            vibrate();
+            window.navigator.vibrate(100);
             myConfetti.current?.({
               particleCount: 16,
               spread: 360,

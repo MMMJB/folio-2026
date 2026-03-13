@@ -1,5 +1,4 @@
 import SFLazyVideo from "./SFLazyVideo";
-import { vibrate } from "../util/haptics";
 
 export default class SFContentManager {
   private container: HTMLElement;
@@ -190,7 +189,7 @@ export default class SFContentManager {
         // web haptics require a click event within 2s of activation; touchStart does not count as a click
         // we cannot click programmatically to get around this
         // i'm leaving this call here for future revisions of safari
-        vibrate();
+        window.navigator.vibrate(50);
       }
     }
   }
