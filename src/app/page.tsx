@@ -37,7 +37,36 @@ export default function Home() {
         </span>{" "}
         a competitive coding platform.
       </p>
-      <div className="bg-surface-100 relative col-span-full! -mx-3 mt-3 aspect-video overflow-hidden rounded-xl sm:mx-0">
+      <p className="flex items-center gap-1.5">
+        Reach out:
+        <span className="text-tx-secondary inline-flex gap-1.5 text-sm underline-offset-2">
+          <a
+            className="hover:text-tx-primary underline transition-colors"
+            href="mailto:michael@beck.so"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Email
+          </a>
+          <a
+            className="hover:text-tx-primary underline transition-colors"
+            href="https://linkedin.com/in/michaelbeck0"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            LinkedIn
+          </a>
+          <a
+            className="hover:text-tx-primary underline transition-colors"
+            href="https://x.com/michaelbeckj"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            X
+          </a>
+        </span>
+      </p>
+      <div className="bg-surface-100 relative col-span-full! -mx-3 mt-1 aspect-video overflow-hidden rounded-xl sm:mx-0">
         <video
           autoPlay
           loop
