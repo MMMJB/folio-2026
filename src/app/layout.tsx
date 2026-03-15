@@ -4,12 +4,23 @@ import Script from "next/script";
 
 import { Inter } from "next/font/google";
 import { cn } from "@/util/ui";
+import { Metadata } from "next";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   weight: ["400", "500"],
 });
+
+export const metadata: Metadata = {
+  title: "Michael Beck",
+  description:
+    "I'm a software engineer interning at Pointer. I previously co-founded vars.gg.",
+  referrer: "origin-when-cross-origin",
+  alternates: {
+    canonical: "https://beck.so",
+  },
+};
 
 export default function RootLayout({
   children,
