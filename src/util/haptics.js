@@ -2,14 +2,14 @@ if (!window) throw new Error("Window is not defined");
 
 if (!("vibrate" in window.navigator)) {
   const hapticsEl = document.createElement("input");
-  hapticsEl.setAttribute("type", "checkbox");
-  hapticsEl.setAttribute("id", "haptics-vibrate");
-  hapticsEl.setAttribute("class", "hidden");
-  hapticsEl.setAttribute("switch", "true");
+  hapticsEl.type = "checkbox";
+  hapticsEl.id = "haptics-vibrate";
+  hapticsEl.className = "hidden";
+  hapticsEl.switch = true;
 
   const hapticsLabel = document.createElement("label");
-  hapticsLabel.setAttribute("for", "haptics-vibrate");
-  hapticsLabel.setAttribute("class", "hidden");
+  hapticsLabel.htmlFor = "haptics-vibrate";
+  hapticsLabel.className = "hidden";
 
   document.body.appendChild(hapticsEl);
   document.body.appendChild(hapticsLabel);
