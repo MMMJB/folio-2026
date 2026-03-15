@@ -37,6 +37,34 @@ export default function Home() {
         </span>{" "}
         a competitive coding platform.
       </p>
+      <div className="bg-surface-100 relative col-span-full! -mx-3 mt-1 aspect-video overflow-hidden rounded-xl sm:mx-0">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          className="bg-skeleton size-full object-contain select-none backface-hidden"
+          width="100%"
+          height="100%"
+          poster="/thumbnails/vars.jpg"
+        >
+          <source src="/videos/vars.webm" type="video/webm" />
+          <source src="/videos/vars.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <span className="selection:text-tx-primary absolute bottom-0 left-0 px-4 py-3 text-xs text-white/60">
+          Shots from the{" "}
+          <a
+            href="https://vars.gg"
+            target="_blank"
+            className="underline underline-offset-2 transition-colors hover:text-white/80"
+          >
+            vars.gg
+          </a>{" "}
+          landing page.
+        </span>
+      </div>
       <p className="flex items-center gap-1.5">
         Reach out:
         <span className="text-tx-secondary inline-flex gap-1.5 text-sm underline-offset-2">
@@ -66,34 +94,6 @@ export default function Home() {
           </a>
         </span>
       </p>
-      <div className="bg-surface-100 relative col-span-full! -mx-3 mt-1 aspect-video overflow-hidden rounded-xl sm:mx-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          className="bg-skeleton size-full object-contain select-none backface-hidden"
-          width="100%"
-          height="100%"
-          poster="/thumbnails/vars.jpg"
-        >
-          <source src="/videos/vars.webm" type="video/webm" />
-          <source src="/videos/vars.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <span className="selection:text-tx-primary absolute bottom-0 left-0 px-4 py-3 text-xs text-white/60">
-          Shots from the{" "}
-          <a
-            href="https://vars.gg"
-            target="_blank"
-            className="underline underline-offset-2 transition-colors hover:text-white/80"
-          >
-            vars.gg
-          </a>{" "}
-          landing page.
-        </span>
-      </div>
     </div>
   );
 }
