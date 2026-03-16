@@ -2,10 +2,36 @@ import WorkPill from "@/components/WorkPill";
 
 export default function Home() {
   return (
-    <div className="mx-auto grid max-w-xl grid-cols-1 gap-y-5 px-6 py-8 text-pretty sm:my-20 sm:grid-cols-3 sm:p-0 [&_>_*]:col-span-2">
+    <div className="mx-auto grid max-w-xl grid-cols-1 gap-y-5 px-6 py-8 text-pretty underline-offset-4 sm:my-20 sm:grid-cols-3 sm:p-0 [&_>_*]:col-span-2">
       <div>
         <h1>Michael Beck</h1>
         <span className="text-tx-secondary">Software Engineer</span>
+        <span className="text-tx-secondary flex gap-1.5">
+          <a
+            className="hover:text-tx-primary underline transition-colors"
+            href="mailto:michael@beck.so"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Email
+          </a>
+          <a
+            className="hover:text-tx-primary underline transition-colors"
+            href="https://linkedin.com/in/michaelbeck0"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            LinkedIn
+          </a>
+          <a
+            className="hover:text-tx-primary underline transition-colors"
+            href="https://x.com/michaelbeckj"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            X
+          </a>
+        </span>
       </div>
       <p>
         I&rsquo;m currently interning at{" "}
@@ -54,46 +80,17 @@ export default function Home() {
           Your browser does not support the video tag.
         </video>
         <span className="selection:text-tx-primary absolute bottom-0 left-0 px-4 py-3 text-xs text-white/60">
-          Shots from the{" "}
+          Shots from{" "}
           <a
             href="https://vars.gg"
             target="_blank"
-            className="underline underline-offset-2 transition-colors hover:text-white/80"
+            className="underline transition-colors hover:text-white/80"
           >
             vars.gg
-          </a>{" "}
-          landing page.
+          </a>
+          .
         </span>
       </div>
-      <p className="flex items-center gap-1.5">
-        Reach out:
-        <span className="text-tx-secondary inline-flex gap-1.5 text-sm underline-offset-2">
-          <a
-            className="hover:text-tx-primary underline transition-colors"
-            href="mailto:michael@beck.so"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Email
-          </a>
-          <a
-            className="hover:text-tx-primary underline transition-colors"
-            href="https://linkedin.com/in/michaelbeck0"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            LinkedIn
-          </a>
-          <a
-            className="hover:text-tx-primary underline transition-colors"
-            href="https://x.com/michaelbeckj"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            X
-          </a>
-        </span>
-      </p>
     </div>
   );
 }
