@@ -66,6 +66,10 @@
   ::selection {
     background-color: var(--color-surface-100);
   }
+
+  * {
+    @apply decoration-current/50;
+  }
 }
 
 @layer utilities {
