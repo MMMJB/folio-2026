@@ -7,6 +7,8 @@
   --color-surface-50: oklch(0.9821 0 0);
   --color-surface-100: oklch(0.9612 0 0);
   --color-surface-200: oklch(0.9521 0 0);
+  --color-surface-300: oklch(0.9421 0 0);
+  --color-surface-400: oklch(0.8681 0 0);
 
   --animate-wiggle: wiggle 1s ease-in-out infinite forwards;
   --animate-restore: restore 1s ease-in-out forwards;
@@ -81,6 +83,6 @@
       rgb(26 26 26 / 0.05)
     );
     background-size: 200% 100%;
-    animation: shimmer 1.5s linear infinite;
+    animation: shimmer 3s linear infinite;
   }
 }
