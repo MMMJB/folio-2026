@@ -2,11 +2,19 @@
 
 @theme inline {
   --font-sans: var(--font-inter);
+  --font-serif: var(--font-instrument-serif);
+
   --color-tx-primary: rgba(26 26 26 / 1);
   --color-tx-secondary: rgba(26 26 26 / 0.5);
   --color-surface-50: oklch(0.9821 0 0);
   --color-surface-100: oklch(0.9612 0 0);
   --color-surface-200: oklch(0.9521 0 0);
+
+  --color-md-background: #fef9ef;
+  --color-md-text: #423f3c;
+  --color-md-surface: #f4eee5;
+  --color-md-highlight: #be6a52;
+  --color-md-border: #e8e2d9;
 
   --animate-wiggle: wiggle 1s ease-in-out infinite forwards;
   --animate-restore: restore 1s ease-in-out forwards;
