@@ -34,7 +34,7 @@ export default function Home() {
         </span>
       </div>
       <p>
-        I&rsquo;m a frontend engineering intern at{" "}
+        I&rsquo;m an engineering intern at{" "}
         <WorkPill href="https://pointer.ai" logo="/logos/pointer.png">
           Pointer
         </WorkPill>{" "}
