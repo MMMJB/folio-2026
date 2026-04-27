@@ -172,7 +172,7 @@ export default function VideoCarousel({
       </div>
       <figcaption
         ref={captionRef}
-        className="absolute bottom-0 left-0 flex text-xs"
+        className="absolute bottom-0 left-0 flex text-sm"
         style={{
           maxWidth: "calc(100% - 2 * var(--c))",
         }}
@@ -181,10 +181,10 @@ export default function VideoCarousel({
           <span
             aria-hidden={i !== currentVideoIndex}
             className={cn(
-              "inline-block truncate px-3 py-1.5 transition-[opacity,filter]",
+              "inline-block truncate pr-4 pl-3 transition-[opacity,filter,translate] ease-out",
               i === currentVideoIndex
-                ? "opacity-100 delay-300 duration-300"
-                : "pointer-events-none absolute opacity-0 blur-xs duration-200",
+                ? "opacity-100 delay-300 duration-500"
+                : "pointer-events-none absolute translate-y-1 opacity-0 blur-xs duration-200",
             )}
             key={i}
           >

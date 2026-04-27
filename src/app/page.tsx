@@ -1,5 +1,6 @@
 import VideoCarousel from "@/components/VideoCarousel";
 import WorkPill from "@/components/WorkPill";
+import CaptionLink from "@/components/CaptionLink";
 
 /*
 - [x] vars landing
@@ -17,14 +18,7 @@ const videos = [
     caption: (
       <>
         Shots from the{" "}
-        <a
-          href="https://vars.gg"
-          target="_blank"
-          className="text-tx-secondary hover:text-tx-primary underline transition-colors"
-        >
-          vars.gg
-        </a>{" "}
-        landing page
+        <CaptionLink href="https://vars.gg/">vars.gg</CaptionLink> landing page
       </>
     ),
   },
@@ -34,15 +28,9 @@ const videos = [
     date: "2026",
     caption: (
       <>
-        Shots from a{" "}
-        <a
-          href="https://luel.ai"
-          target="_blank"
-          className="text-tx-secondary hover:text-tx-primary underline transition-colors"
-        >
-          Luel
-        </a>{" "}
-        landing page redesign I worked on
+        My (rejected){" "}
+        <CaptionLink href="https://luel-three.vercel.app">Luel</CaptionLink>{" "}
+        landing page redesign
       </>
     ),
   },
