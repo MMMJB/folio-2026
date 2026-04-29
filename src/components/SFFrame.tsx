@@ -43,7 +43,7 @@ export default function SFFrame({
         muted
         poster={posterSource}
         preload={forceActive ? "metadata" : "none"}
-        className="size-full object-contain select-none backface-hidden"
+        className="size-full bg-black object-contain select-none backface-hidden"
         width="100%"
         height="100%"
       >

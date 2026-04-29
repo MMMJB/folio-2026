@@ -26,7 +26,7 @@ export default function SFPlayer({ content }: { content: SFContent[] }) {
   return (
     <div
       ref={containerRef}
-      className="sf-player h-[var(--sf-frame-h)] cursor-grab touch-none overflow-hidden border-white sm:border"
+      className="sf-player h-[var(--sf-frame-h)] w-max cursor-grab touch-none overflow-hidden bg-black sm:border"
     >
       {content.map((c, i) => (
         <SFFrame key={i} content={c} forceActive={i === 0} frameIndex={i} />
