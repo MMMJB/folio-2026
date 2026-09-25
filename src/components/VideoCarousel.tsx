@@ -124,7 +124,7 @@ export default function VideoCarousel({
         "--control-pad": "1rem",
         "--control-h":
           "calc(var(--control-pad) * 2 + (var(--n-items) + 2) * var(--control-item-sz) + (var(--n-items) - 1) * var(--control-item-gap))",
-        "--cap-w": "271.41px", // pre-computed to prevent layout shift
+        "--cap-w": "316.65px", // pre-computed to prevent layout shift
         "--c": "1rem",
         "--nc": "calc(-1 * var(--c))",
         "--notch": "2rem",

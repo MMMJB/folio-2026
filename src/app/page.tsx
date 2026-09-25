@@ -70,7 +70,7 @@ export default function Home() {
         </span>
       </div>
       <p>
-        I&rsquo;m a frontend engineering intern at{" "}
+        I&rsquo;m a product + deployed engineer at{" "}
         <WorkPill href="https://pointer.ai" logo="/logos/pointer.png">
           Pointer
         </WorkPill>{" "}
