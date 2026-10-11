@@ -12,7 +12,7 @@ import Heart from "./Heart";
 
 import { cn } from "../util/ui";
 
-import type { SFContent } from "../types/sf";
+import type { SFContent, FullSFContent } from "../types/sf";
 
 const labelFormatter = new Intl.NumberFormat("en", { notation: "compact" });
 
@@ -48,7 +48,9 @@ function InteractionButton({
 export default function SFContentOverlay({ content }: { content: SFContent }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { title, description, tags, likes, views, shares } = content;
+  const isFull = content.type === "full";
+
+  const { title, description } = content;
 
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
@@ -91,32 +93,40 @@ export default function SFContentOverlay({ content }: { content: SFContent }) {
           )}
         >
           {description}
-          {tags.length && <br />}
-          {tags.map((tag, i) => (
-            <span key={i} className="mr-1 text-slate-200">
-              #{tag}
-            </span>
-          ))}
+          {isFull && content.tags.length && (
+            <>
+              <br />
+              {content.tags.map((tag, i) => (
+                <span key={i} className="mr-1 text-slate-200">
+                  #{tag}
+                </span>
+              ))}
+            </>
+          )}
         </p>
       </div>
-      <div role="group" className="flex w-6 flex-col items-center gap-6">
-        <InteractionButton icon={<Heart />} label={likes} />
-        <InteractionButton
-          icon={<EyeIcon weight="bold" size={22} />}
-          label={views}
-        />
-        <InteractionButton
-          icon={
-            <PaperPlaneRightIcon
-              weight="bold"
-              className="-rotate-30"
-              size={21}
-            />
-          }
-          label={shares}
-        />
-        <div className="size-6 rounded-lg bg-black outline-[1.5px] outline-white"></div>
-      </div>
+      {isFull && <InteractionBar content={content} />}
+    </div>
+  );
+}
+
+function InteractionBar({ content }: { content: FullSFContent }) {
+  const { likes, views, shares } = content;
+
+  return (
+    <div role="group" className="flex w-6 flex-col items-center gap-6">
+      <InteractionButton icon={<Heart />} label={likes} />
+      <InteractionButton
+        icon={<EyeIcon weight="bold" size={22} />}
+        label={views}
+      />
+      <InteractionButton
+        icon={
+          <PaperPlaneRightIcon weight="bold" className="-rotate-30" size={21} />
+        }
+        label={shares}
+      />
+      <div className="size-6 rounded-lg bg-black outline-[1.5px] outline-white"></div>
     </div>
   );
 }

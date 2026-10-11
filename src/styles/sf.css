@@ -1,5 +1,5 @@
 .sf-player {
-  --sf-max-frame-w: min(100dvw, 375px);
+  /* --sf-max-frame-w: min(100dvw, 375px);
   --sf-max-frame-h: min(100dvh, 667px);
   --sf-frame-w: min(
     var(--sf-max-frame-w, 100dvw),
@@ -8,7 +8,9 @@
   --sf-frame-h: min(
     var(--sf-max-frame-h, 100dvh),
     calc(var(--sf-max-frame-w, 100dvw) * 16 / 9)
-  );
+  ); */
+  --sf-frame-w: 100dvw;
+  --sf-frame-h: 100dvh;
 
   .sf-frame {
     --is-active: calc(

@@ -1,10 +1,20 @@
-export interface SFContent {
+interface SFContentType {
+  src: string;
+  title: string;
+  description: string;
+}
+
+export interface PartialSFContent extends SFContentType {
+  type: "partial";
+}
+
+export interface FullSFContent extends SFContentType {
+  type: "full";
   likes: number;
   views: number;
   shares: number;
-  title: string;
-  description: string;
   tags: string[];
   work: string | null;
-  src: string;
 }
+
+export type SFContent = PartialSFContent | FullSFContent;
