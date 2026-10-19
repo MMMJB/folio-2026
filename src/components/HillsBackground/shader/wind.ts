@@ -1,14 +1,15 @@
-// Wind shared by the grass and the flowers.
-export const wind = /* glsl */ `
+// Wind: a steady breeze plus gusts, a smooth noise field drifting downwind.
+// Where a gust is strong, blades lean further along the wind, so waves of
+// motion roll across the grass. Gusts are sized to the scene: speed in metres
+// per second, size in metres across a typical gust.
+export const windField = (gustSpeed: number, gustSize: number) => /* glsl */ `
 // Resting tip offset as a fraction of fiber length, applied as a shear of the
 // lookup space.
 const vec2 WIND = vec2(0.5, -0.15);
 
-// Gusts: a smooth noise field drifting downwind. Where it's strong, blades lean
-// further along the wind, so waves of motion roll across the hills.
 const vec2 GUST_DIRECTION = normalize(WIND);
-const float GUST_SPEED = 25.0; // metres per second
-const float GUST_SIZE = 50.0; // metres across a typical gust
+const float GUST_SPEED = ${gustSpeed.toFixed(2)};
+const float GUST_SIZE = ${gustSize.toFixed(2)};
 const float GUST_STRENGTH = 0.7; // extra lean at full strength
 const float FLUTTER = 0.07;
 
@@ -22,3 +23,6 @@ vec2 windAt(vec2 xz, float gust) {
   return WIND + GUST_DIRECTION * (gust * GUST_STRENGTH + flutter) * uWind;
 }
 `;
+
+// The hills' wind, shared by the grass and the flowers.
+export const wind = windField(25, 50);

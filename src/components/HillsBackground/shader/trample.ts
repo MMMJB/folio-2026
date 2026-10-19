@@ -27,7 +27,8 @@ export function trailMapUv(x: number, z: number): [number, number] {
   ];
 }
 
-// Shared by the scene and the pass that updates the trail map.
+// The hills' trail map layout, shared by the scene and the pass that updates
+// the map. Every layout defines TRAIL_MAP_SIZE, trailMapUv and trailMapGround.
 const trailMap = /* glsl */ `
 const vec2 TRAIL_MAP_SIZE = vec2(${TRAIL_MAP_SIZE.map((n) => n.toFixed(1)).join(", ")});
 const float TRAIL_MAP_SPREAD = ${TRAIL_MAP_SPREAD.toFixed(3)};
@@ -46,7 +47,10 @@ vec2 trailMapGround(vec2 uv) {
   float dist = TRAIL_MAP_DISTANCE.x * pow(TRAIL_MAP_DISTANCE.y / TRAIL_MAP_DISTANCE.x, uv.y);
   return CAMERA_POSITION + dist * vec2(sin(angle), cos(angle));
 }
+`;
 
+// How the cursor disturbs the grass, shared by every scene with a trail map.
+export const trampleSettings = /* glsl */ `
 // 1: the cursor is a wind source blowing blades outward, hardest nearest the
 // cursor. 0: it presses blades flat the way it's moving.
 #define TRAMPLE_WIND 1
@@ -83,8 +87,7 @@ const float TRAMPLE_SMOOTH = 0.25;
 `;
 
 // Grass disturbed by the cursor, read from the trail map.
-export const trample = /* glsl */ `
-${trailMap}
+export const trampleSampler = /* glsl */ `
 uniform sampler2D uTrailMap;
 // The part of the map (min and max uv) that may be pressed; elsewhere is calm.
 uniform vec4 uTrailRect;
@@ -118,7 +121,7 @@ float trampleAt(vec2 xz, out vec2 push) {
 // xy: the sum of the pushes the cursor gave it, each weighted by strength and
 // time, w: the sum of those weights, z: how pressed it is, shown as
 // smoothstep(z) like the cursor's level.
-const trailUpdate = /* glsl */ `
+export const trailUpdate = /* glsl */ `
 uniform sampler2D uPrevious;
 // xy: the cursor's ground position, z: its strength, w: its radius.
 uniform vec4 uTrample;
@@ -168,7 +171,13 @@ void main() {
 }
 `;
 
+export const trample = `
+${trailMap}
+${trampleSettings}
+${trampleSampler}`;
+
 export const trailShader = `#version 300 es
 ${common}
 ${trailMap}
+${trampleSettings}
 ${trailUpdate}`;
