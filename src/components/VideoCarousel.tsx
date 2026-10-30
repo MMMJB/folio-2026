@@ -180,6 +180,7 @@ export default function VideoCarousel({
         {videos.map(({ caption, date }, i) => (
           <span
             aria-hidden={i !== currentVideoIndex}
+            inert={i !== currentVideoIndex}
             className={cn(
               "inline-block truncate pr-4 pl-3 transition-[opacity,filter,translate] ease-out",
               i === currentVideoIndex
@@ -210,6 +211,7 @@ export default function VideoCarousel({
                 height: `calc(var(--control-item-sz) * ${active ? 3 : 1})`,
               }}
               onClick={() => setCurrentVideoIndex(i)}
+              aria-label={`Play video ${i + 1} of ${numItems}`}
             >
               <div
                 className={cn(

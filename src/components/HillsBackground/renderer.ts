@@ -7,9 +7,12 @@ import {
   resizeTarget,
 } from "./gl";
 import { createCloudStrip } from "./cloudStrip";
+import { createContourBake } from "./contour";
 import { createEntryBake } from "./entry";
+import { createMotes, DEFAULT_MOTES, type MoteSettings } from "./motes";
 import { createTrample } from "./pointer";
 import {
+  blurAt,
   dofShader,
   fragmentShader,
   heightmapShader,
@@ -37,6 +40,25 @@ const JITTER = [
 // image; two is the compromise.
 const PRESSING_BLEND = 2;
 
+// Distance in metres at which the page section nestles into the scene, just
+// behind the midground hill.
+const NESTLE_DEPTH = 180;
+const CONTOUR_UNIT = 1;
+
+// The page section nestled in the scene, in fractions of the canvas (y down),
+// and how far up from its bottom the hills may hide it, as a fraction of the
+// canvas height.
+type Rect = [number, number, number, number];
+const NO_SKIP: Rect = [0, 0, 0, 0];
+
+export type NestledSection = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  bury: number;
+};
+
 // Knobs that trade image quality for speed. FULL_QUALITY is the reference
 // look; everything else is measured against it.
 export type HillsQuality = {
@@ -52,6 +74,9 @@ export type HillsQuality = {
   maxSteps: number;
   // Scales how far gusts and flutter bend the grass; 0 turns wind off.
   windStrength: number;
+  // Drift speed of the far cloud layer as a fraction of the near one's; at
+  // 1 they move together.
+  backCloudSpeed: number;
   // Multiplies the depth of field sample spacing.
   blurSpacing: number;
   // Largest depth of field blur radius, as a fraction of the frame height.
@@ -65,6 +90,7 @@ export const FULL_QUALITY: HillsQuality = {
   fiberDistance: 1500,
   maxSteps: 2000,
   windStrength: 1,
+  backCloudSpeed: 0.45,
   blurSpacing: 1,
   blurStrength: 0.006,
 };
@@ -73,11 +99,12 @@ export const FULL_QUALITY: HillsQuality = {
 export const DEFAULT_QUALITY: HillsQuality = {
   renderScale: 0.45,
   fiberStep: 1.5,
-  fiberDistance: 450,
+  fiberDistance: 475,
   maxSteps: 600,
   windStrength: 1.55,
-  blurSpacing: 1,
-  blurStrength: 0,
+  backCloudSpeed: 0.45,
+  blurSpacing: 3,
+  blurStrength: 0.01,
 };
 
 export type HillsRenderer = {
@@ -91,6 +118,9 @@ export type HillsRenderer = {
   setPointer: (uv: [number, number] | null) => void;
   // Trample radius in metres on the ground.
   setTrampleRadius: (radius: number) => void;
+  setMotes: (motes: Partial<MoteSettings>) => void;
+  // The section the canvas sits over, or null to cover the page entirely.
+  setSection: (section: NestledSection | null) => void;
   dispose: () => void;
 };
 
@@ -180,6 +210,8 @@ export function createHillsRenderer(
   const trample = createTrample(gl, bindTerrain);
   const entry = createEntryBake(gl, JITTER, bindTerrain);
   const clouds = createCloudStrip(gl, seed);
+  const contour = createContourBake(gl, NESTLE_DEPTH, bindTerrain);
+  const motes = createMotes(gl, bindTerrain);
   const frames = JITTER.map(() => createTarget(gl));
   const resolved = createTarget(gl);
 
@@ -188,12 +220,22 @@ export function createHillsRenderer(
   let sceneWidth = 0;
   let sceneHeight = 0;
   let quality = { ...DEFAULT_QUALITY };
+  let moteSettings = { ...DEFAULT_MOTES };
   let frame = 0;
   // How many of the latest frames are averaged.
   let blend = JITTER.length;
   let animationFrame = 0;
   let running = false;
+  let section: NestledSection | null = null;
+  // The part of the scene hidden behind the section, in scene pixels (x0, y0,
+  // x1, y1, y up); the scene skips it. See updateSkip.
+  let skip: Rect = NO_SKIP;
+  // True while no frame is scheduled and the canvas shows a finished scene.
+  let idle = false;
+  let compositeFrame = 0;
   const startTime = performance.now();
+
+  const time = () => (performance.now() - startTime) / 1000;
 
   const drawScene = (index: number) => {
     entry?.update({
@@ -212,11 +254,10 @@ export function createHillsRenderer(
     gl.uniform1f(scene.uniform("uFiberDistance"), quality.fiberDistance);
     gl.uniform1i(scene.uniform("uMaxSteps"), quality.maxSteps);
     gl.uniform1f(scene.uniform("uWind"), quality.windStrength);
+    gl.uniform1f(scene.uniform("uBackCloudSpeed"), quality.backCloudSpeed);
     gl.uniform2f(scene.uniform("uJitter"), JITTER[index][0], JITTER[index][1]);
-    gl.uniform1f(
-      scene.uniform("uTime"),
-      (performance.now() - startTime) / 1000,
-    );
+    gl.uniform4f(scene.uniform("uSkip"), ...skip);
+    gl.uniform1f(scene.uniform("uTime"), time());
     bindTerrain(scene);
     trample?.setUniforms(scene);
     entry?.setUniforms(scene);
@@ -236,7 +277,47 @@ export function createHillsRenderer(
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 
+  // In canvas pixels, y up.
+  const sectionRect = ({ left, top, right, bottom }: NestledSection): Rect => [
+    left * width,
+    (1 - bottom) * height,
+    right * width,
+    (1 - top) * height,
+  ];
+
+  // Above its buried strip the section shows through the canvas entirely, so
+  // the scene behind it is never seen, except that the depth of field gathers
+  // from up to the largest blur radius around each visible pixel (plus a
+  // pixel for filtering). Returns true if the new region uncovers scene the
+  // frames being averaged skipped; they must then start over.
+  const updateSkip = () => {
+    let next = NO_SKIP;
+    if (section) {
+      const [x0, y0, x1, y1] = sectionRect(section);
+      const margin = quality.blurStrength * height + height / sceneHeight;
+      const sx = sceneWidth / width;
+      const sy = sceneHeight / height;
+      const rect: Rect = [
+        Math.ceil((x0 + margin) * sx),
+        Math.ceil((y0 + section.bury * height + margin) * sy),
+        Math.floor((x1 - margin) * sx),
+        Math.floor((y1 - margin) * sy),
+      ];
+      if (rect[0] < rect[2] && rect[1] < rect[3]) next = rect;
+    }
+    const uncovered =
+      skip !== NO_SKIP &&
+      (next === NO_SKIP ||
+        next[0] > skip[0] ||
+        next[1] > skip[1] ||
+        next[2] < skip[2] ||
+        next[3] < skip[3]);
+    skip = next;
+    return uncovered;
+  };
+
   const drawDepthOfField = () => {
+    contour?.update(width, height);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, width, height);
     gl.useProgram(dof.program);
@@ -246,7 +327,32 @@ export function createHillsRenderer(
     gl.uniform2f(dof.uniform("uResolution"), width, height);
     gl.uniform1f(dof.uniform("uBlurSpacing"), quality.blurSpacing);
     gl.uniform1f(dof.uniform("uMaxBlur"), quality.blurStrength);
+    gl.uniform1i(dof.uniform("uNestle"), section ? 1 : 0);
+    if (section) {
+      gl.uniform4f(dof.uniform("uSection"), ...sectionRect(section));
+      gl.uniform1f(dof.uniform("uBury"), section.bury * height);
+      gl.uniform1f(dof.uniform("uNestleBlur"), blurAt(NESTLE_DEPTH));
+      gl.uniform1i(dof.uniform("uUseContour"), contour ? 1 : 0);
+      contour?.bind(dof, CONTOUR_UNIT);
+    }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+  };
+
+  // The motes go over the finished frame: they move on every frame, so
+  // averaging jittered frames would only smear them.
+  const drawComposite = () => {
+    drawDepthOfField();
+    motes?.draw(moteSettings, {
+      width,
+      height,
+      time: time(),
+      windStrength: quality.windStrength,
+      maxBlur: quality.blurStrength,
+      section: section && {
+        rect: sectionRect(section),
+        bury: section.bury * height,
+      },
+    });
   };
 
   const tick = () => {
@@ -265,7 +371,7 @@ export function createHillsRenderer(
     if (clouds?.bake(sceneHeight, height)) frame = 0;
     drawScene(frame % blend);
     drawResolve(Math.min(frame + 1, blend));
-    drawDepthOfField();
+    drawComposite();
     frame += 1;
 
     const converged =
@@ -273,10 +379,12 @@ export function createHillsRenderer(
       frame >= JITTER.length &&
       (clouds?.ready() ?? true);
     if (running || !converged) animationFrame = requestAnimationFrame(tick);
+    else idle = true;
     onFrame(converged);
   };
 
   const schedule = () => {
+    idle = false;
     cancelAnimationFrame(animationFrame);
     if (width > 0 && height > 0) animationFrame = requestAnimationFrame(tick);
   };
@@ -288,6 +396,7 @@ export function createHillsRenderer(
       resizeTarget(gl, target, sceneWidth, sceneHeight),
     );
     resizeTarget(gl, resolved, sceneWidth, sceneHeight);
+    updateSkip();
     frame = 0;
   };
 
@@ -307,6 +416,7 @@ export function createHillsRenderer(
         next.renderScale !== quality.renderScale;
       quality = { ...quality, ...next };
       if (scaleChanged) allocate();
+      updateSkip();
       frame = 0;
       schedule();
     },
@@ -322,11 +432,34 @@ export function createHillsRenderer(
       if (!running) schedule();
     },
     setTrampleRadius: (radius) => trample?.setRadius(radius),
+    setMotes: (next) => {
+      moteSettings = { ...moteSettings, ...next };
+      // A still scene redraws once to show them.
+      if (!running) schedule();
+    },
+    setSection: (next) => {
+      section = next;
+      if (updateSkip()) {
+        frame = 0;
+        schedule();
+        return;
+      }
+      // Otherwise a finished scene only needs compositing again over the moved
+      // section, and a running one picks it up on the next frame.
+      if (!idle) return;
+      cancelAnimationFrame(compositeFrame);
+      compositeFrame = requestAnimationFrame(() => {
+        if (idle) drawComposite();
+      });
+    },
     dispose: () => {
       cancelAnimationFrame(animationFrame);
+      cancelAnimationFrame(compositeFrame);
       trample?.dispose();
       entry?.dispose();
       clouds?.dispose();
+      contour?.dispose();
+      motes?.dispose();
       [scene, resolve, dof].forEach(({ program }) => gl.deleteProgram(program));
       frames.forEach((target) => deleteTarget(gl, target));
       deleteTarget(gl, resolved);

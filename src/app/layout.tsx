@@ -37,7 +37,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn(
-        "text-tx-primary font-sans antialiased",
+        "text-tx-primary overscroll-none font-sans antialiased",
         inter.variable,
         instrumentSerif.variable,
       )}

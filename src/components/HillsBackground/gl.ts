@@ -30,8 +30,9 @@ function compileShader(
 export function createProgram(
   gl: WebGL2RenderingContext,
   fragmentSource: string,
+  vertexSource = vertexShader,
 ): Program | null {
-  const vertex = compileShader(gl, gl.VERTEX_SHADER, vertexShader);
+  const vertex = compileShader(gl, gl.VERTEX_SHADER, vertexSource);
   const fragment = compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
   if (!vertex || !fragment) return null;
 

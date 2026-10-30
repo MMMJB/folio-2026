@@ -5,7 +5,8 @@ import { FOCAL_LENGTH } from "./shader/common";
 
 // Units 0-3 hold the scene frames, 4 the heightmap, 6 the entry bake and 7
 // the trample trail.
-const CLOUD_UNIT = 5;
+const BACK_UNIT = 5;
+const FRONT_UNIT = 8;
 // Strip texels per scene pixel. At two, the baked clouds match ones computed
 // per pixel to within a few levels even at their crispest edges.
 const OVERSAMPLE = 2;
@@ -24,9 +25,11 @@ export type CloudStrip = {
   dispose: () => void;
 };
 
-// The clouds only drift, so they're baked once into a strip covering one
-// period of their repeating layout, which the sky then samples. It's 8-bit,
-// so any WebGL2 device can render it: 5 to 10 MB at the sizes used.
+// The clouds only drift, so they're baked once into strips covering one
+// period of their repeating layout, which the sky then samples: one for the
+// layer behind and one for the layer in front, which drift at different
+// speeds. They're 8-bit, so any WebGL2 device can render them: 7 to 15 MB
+// at the sizes used.
 export function createCloudStrip(
   gl: WebGL2RenderingContext,
   seed: number,
@@ -34,7 +37,21 @@ export function createCloudStrip(
   const program = createProgram(gl, cloudStripShader);
   if (!program) return null;
 
-  const texture = gl.createTexture();
+  // The back layer is brightness alone; the front adds its coverage.
+  const layers = [
+    {
+      unit: BACK_UNIT,
+      format: gl.R8,
+      channels: gl.RED,
+      texture: gl.createTexture(),
+    },
+    {
+      unit: FRONT_UNIT,
+      format: gl.RG8,
+      channels: gl.RG,
+      texture: gl.createTexture(),
+    },
+  ];
   const framebuffer = gl.createFramebuffer();
   const maxWidth = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), 8192);
   let width = 0;
@@ -47,31 +64,34 @@ export function createCloudStrip(
     height = Math.round(((STRIP_TOP - STRIP_BOTTOM) / CLOUD_PERIOD) * width);
     canvasPixel = 1 / (canvasHeight * FOCAL_LENGTH);
     baked = 0;
-    gl.activeTexture(gl.TEXTURE0 + CLOUD_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.R8,
-      width,
-      height,
-      0,
-      gl.RED,
-      gl.UNSIGNED_BYTE,
-      null,
-    );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      texture,
-      0,
-    );
+    layers.forEach((layer, i) => {
+      gl.activeTexture(gl.TEXTURE0 + layer.unit);
+      gl.bindTexture(gl.TEXTURE_2D, layer.texture);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        layer.format,
+        width,
+        height,
+        0,
+        layer.channels,
+        gl.UNSIGNED_BYTE,
+        null,
+      );
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0 + i,
+        gl.TEXTURE_2D,
+        layer.texture,
+        0,
+      );
+    });
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
   };
 
   return {
@@ -86,8 +106,10 @@ export function createCloudStrip(
       if (baked >= width) return false;
 
       // A texture can't be drawn into while bound for sampling.
-      gl.activeTexture(gl.TEXTURE0 + CLOUD_UNIT);
-      gl.bindTexture(gl.TEXTURE_2D, null);
+      for (const layer of layers) {
+        gl.activeTexture(gl.TEXTURE0 + layer.unit);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+      }
       gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
       gl.viewport(0, 0, width, height);
       gl.enable(gl.SCISSOR_TEST);
@@ -104,16 +126,19 @@ export function createCloudStrip(
     },
     ready: () => width > 0 && baked >= width,
     setUniforms: (scene) => {
-      gl.activeTexture(gl.TEXTURE0 + CLOUD_UNIT);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.uniform1i(scene.uniform("uCloudStrip"), CLOUD_UNIT);
+      for (const layer of layers) {
+        gl.activeTexture(gl.TEXTURE0 + layer.unit);
+        gl.bindTexture(gl.TEXTURE_2D, layer.texture);
+      }
+      gl.uniform1i(scene.uniform("uCloudBack"), BACK_UNIT);
+      gl.uniform1i(scene.uniform("uCloudFront"), FRONT_UNIT);
       gl.uniform1i(
         scene.uniform("uUseCloudStrip"),
         width > 0 && baked >= width ? 1 : 0,
       );
     },
     dispose: () => {
-      gl.deleteTexture(texture);
+      for (const layer of layers) gl.deleteTexture(layer.texture);
       gl.deleteFramebuffer(framebuffer);
       gl.deleteProgram(program.program);
     },

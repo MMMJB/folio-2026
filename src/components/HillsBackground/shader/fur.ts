@@ -107,11 +107,10 @@ float bladesAt(vec2 xz, float t, vec2 wind) {
   return mix(fine, coarse, fract(level));
 }
 
-// gust is the gust strength along this ray; see marchFur.
-bool fiberAt(vec2 xz, float h, float len, float cellSize, float gust) {
+// gust is the gust strength along this ray, and trampled and push are
+// trampleAt's at xz; see marchFur.
+bool fiberAt(vec2 xz, float h, float len, float cellSize, float gust, float trampled, vec2 push) {
   vec2 wind = uWind > 0.0 ? windAt(xz, gust) : WIND;
-  vec2 push;
-  float trampled = trampleAt(xz, push);
   wind += push * trampled * TRAMPLE_LEAN;
   float heightScale = mix(1.0, TRAMPLE_HEIGHT, trampled);
   vec2 q = (xz - wind * h * h / len) / cellSize;
@@ -195,9 +194,10 @@ float marchFur(vec3 ro, vec3 rd, vec2 start) {
   if (start.x >= FAR) return FAR;
   float ceiling = maxHillHeight();
   float t = start.x;
-  // Gusts span tens of metres and a ray crosses the grass over far less, so
-  // the gust is looked up once, where the ray first reaches the grass.
+  // Gusts and flower patches span metres and a ray crosses the grass over far
+  // less, so both are looked up once, where the ray first reaches the grass.
   float gust = -1.0;
+  float flowerDensity = 0.0;
   for (int i = int(start.y); i < 2000; i++) {
     if (i >= uMaxSteps) break;
     vec3 p = ro + rd * t;
@@ -208,16 +208,26 @@ float marchFur(vec3 ro, vec3 rd, vec2 start) {
     float shell = grassShell(t, len);
     if (h < 0.0) return t;
     if (h < shell) {
-      if (gust < 0.0) gust = uWind > 0.0 ? gustAt(p.xz) : 0.0;
-      if (fiberAt(p.xz, h, len, fiberCellSize(t), gust)) return t;
+      if (gust < 0.0) {
+        gust = uWind > 0.0 ? gustAt(p.xz) : 0.0;
+#if FLOWERS
+        flowerDensity = flowerDensityAt(p.xz);
+#endif
+      }
+      // Shared by the blades and the flowers.
+      vec2 push;
+      float trampled = trampleAt(p.xz, push);
+      if (fiberAt(p.xz, h, len, fiberCellSize(t), gust, trampled, push)) return t;
       // Step by fiber width, not length, so tall blades are sampled along
       // their whole height instead of breaking into dots.
       float step = len * FIBER_WIDTH * uFiberStep;
 #if FLOWERS
-      float flower = flowerHit(ro, rd, p, h, len, furLevel(t), t + step);
-      if (flower > 0.0) {
-        hitFlower = true;
-        return flower;
+      if (t < FLOWER_FAR) {
+        float flower = flowerHit(ro, rd, p, h, len, furLevel(t), t + step, flowerDensity, gust, trampled, push);
+        if (flower > 0.0) {
+          hitFlower = true;
+          return flower;
+        }
       }
 #endif
       t += step;

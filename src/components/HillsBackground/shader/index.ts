@@ -2,6 +2,7 @@ import { camera } from "./camera";
 import { clouds } from "./clouds";
 import { common } from "./common";
 import { flowers } from "./flowers";
+import { BLUR_CURVE, FOCUS_DISTANCE } from "./focus";
 import { fur } from "./fur";
 import { pick } from "./pick";
 import { terrain } from "./terrain";
@@ -9,6 +10,8 @@ import { trample } from "./trample";
 import { wind } from "./wind";
 
 export { dofShader } from "./dof";
+export { blurAt } from "./focus";
+export { motesFragmentShader, motesVertexShader } from "./motes";
 export { resolveShader } from "./resolve";
 
 export const vertexShader = /* glsl */ `#version 300 es
@@ -25,14 +28,12 @@ out vec4 fragColor;
 // This frame's sub-pixel sample offset; the renderer averages several frames
 // with different offsets to antialias.
 uniform vec2 uJitter;
+// Pixels hidden behind the nestled section (x0, y0, x1, y1), which are
+// never seen and so left out.
+uniform vec4 uSkip;
 
-// The lens is focused at this distance; everything nearer is sharp and blur
-// grows gradually beyond it. The blur itself is applied in the dof pass.
-const float FOCUS_DISTANCE = 60.0;
-// Above 1, blur ramps in more slowly so it concentrates toward the back.
-const float BLUR_CURVE = 1.5;
-// The sky is far but only lightly blurred, so the clouds keep their detail.
-const float SKY_BLUR = 0.25;
+const float FOCUS_DISTANCE = ${FOCUS_DISTANCE.toFixed(1)};
+const float BLUR_CURVE = ${BLUR_CURVE.toFixed(1)};
 
 // Where this pixel's rays reach the grass, baked once; see entry below.
 // Without it rays march from the camera.
@@ -48,11 +49,16 @@ vec4 render(vec3 ro, vec3 rd) {
 }
 
 void main() {
+  if (all(greaterThan(gl_FragCoord.xy, uSkip.xy)) && all(lessThan(gl_FragCoord.xy, uSkip.zw))) {
+    fragColor = vec4(0.0);
+    return;
+  }
   vec3 ro = cameraOrigin();
   vec3 rd = cameraRay((gl_FragCoord.xy + uJitter - 0.5 * uResolution) / uResolution.y);
 
   vec4 hit = render(ro, rd);
-  float blur = hit.w >= FAR ? SKY_BLUR : pow(clamp(1.0 - FOCUS_DISTANCE / hit.w, 0.0, 1.0), BLUR_CURVE);
+  // The sky blurs like the furthest hills.
+  float blur = pow(clamp(1.0 - FOCUS_DISTANCE / min(hit.w, FAR), 0.0, 1.0), BLUR_CURVE);
 
   vec3 c = hit.rgb;
   float y = max(0.0, min(c.r, c.g) - c.b);
@@ -138,12 +144,15 @@ ${entry}`;
 const cloudStrip = /* glsl */ `
 uniform vec2 uStripSize;
 uniform float uCanvasPixel;
-out vec4 fragColor;
+layout(location = 0) out vec4 back;
+layout(location = 1) out vec4 front;
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uStripSize;
   vec2 p = vec2(uv.x * CLOUD_PERIOD, mix(STRIP_BOTTOM, STRIP_TOP, uv.y));
-  fragColor = vec4(cloudBrightness(p, uCanvasPixel) / STRIP_SCALE, 0.0, 0.0, 1.0);
+  vec3 layers = cloudLayers(p, p, uCanvasPixel);
+  back = vec4(layers.x / STRIP_SCALE, 0.0, 0.0, 1.0);
+  front = vec4(layers.y / STRIP_SCALE, layers.z, 0.0, 1.0);
 }
 `;
 
@@ -151,3 +160,38 @@ export const cloudStripShader = `#version 300 es
 ${common}
 ${clouds}
 ${cloudStrip}`;
+
+// The nestle contour: for each canvas column, the highest point on screen of
+// the ground (plus a little grass) nearer than uNestleDepth, roughly where a
+// section nestled at that depth meets the hill. It places the section's
+// ambient occlusion. Stored in canvas pixels from the bottom.
+const contour = /* glsl */ `
+uniform float uNestleDepth;
+out vec4 fragColor;
+
+const int CONTOUR_STEPS = 256;
+const float CONTOUR_NEAR = 2.0;
+
+void main() {
+  float x = (gl_FragCoord.x - 0.5 * uResolution.x) / uResolution.y;
+  float eye = cameraOrigin().y;
+  float top = -1.0;
+  for (int i = 0; i < CONTOUR_STEPS; i++) {
+    float z = mix(CONTOUR_NEAR, uNestleDepth, (float(i) + 0.5) / float(CONTOUR_STEPS));
+    vec2 p = CAMERA_POSITION + vec2(x * z / FOCAL_LENGTH, z);
+    float h = terrain(p) + furLength(z) * 0.35;
+    top = max(top, FOCAL_LENGTH * (h - eye) / z - HORIZON_SHIFT);
+  }
+  fragColor = vec4((top + 0.5) * uResolution.y, 0.0, 0.0, 1.0);
+}
+`;
+
+export const contourShader = `#version 300 es
+${common}
+${terrain}
+${camera}
+${wind}
+${trample}
+${flowers}
+${fur}
+${contour}`;

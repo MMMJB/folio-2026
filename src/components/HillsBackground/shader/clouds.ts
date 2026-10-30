@@ -35,8 +35,13 @@ const float STRIP_TOP = ${STRIP_TOP.toFixed(3)};
 const float STRIP_SCALE = ${STRIP_SCALE.toFixed(2)};
 // Masses in front of each group's tower.
 const int CLOUD_FRONT_MASSES = 4;
-// Radians per second; the clouds drift slowly downwind.
+// Radians per second; the clouds drift slowly downwind. The layer behind is
+// further away, so it drifts slower, by this fraction of the near one's speed.
 const float CLOUD_DRIFT = 0.0012;
+uniform float uBackCloudSpeed;
+// The near layer sits this far right of where its towers place it, in
+// radians: 70 pixels on a view 900 pixels tall.
+const float FRONT_OFFSET = 70.0 / (900.0 * FOCAL_LENGTH);
 // The outline facing this direction is lit: from the right, 35 degrees up.
 const vec2 CLOUD_LIGHT = vec2(0.819, 0.574);
 
@@ -144,11 +149,11 @@ float litBand(float d) {
   return mix(0.6, 0.45, clamp((d - 0.35) / 0.35, 0.0, 1.0));
 }
 
-// Layers one mass's brightness over what's behind it.
-float layerMass(float behind, vec2 p, Mass m, float pixel) {
+// One mass's brightness (x) and how much of what's behind it covers (y).
+vec2 massLayer(vec2 p, Mass m, float pixel) {
   float height = m.size.y;
   vec2 reach = m.size * vec2(2.2, 1.4) + height * BULGE_SIZE;
-  if (abs(p.x - m.center.x) > reach.x || p.y - m.center.y > reach.y) return behind;
+  if (abs(p.x - m.center.x) > reach.x || p.y - m.center.y > reach.y) return vec2(0.0);
 
   // A solid body inside the outline, which the bulges and lumps build on.
   float coverage = smoothstep(0.0, 0.03 * height, massShape(p, m));
@@ -201,7 +206,7 @@ float layerMass(float behind, vec2 p, Mass m, float pixel) {
       }
     }
   }
-  if (coverage <= 0.0) return behind;
+  if (coverage <= 0.0) return vec2(0.0);
 
   // Depth in from the outline facing the light. Samples count as inside
   // gradually, so rays that graze a lobe don't draw streaks.
@@ -212,77 +217,108 @@ float layerMass(float behind, vec2 p, Mass m, float pixel) {
   }
   float field = heightRamp((p.y - m.center.y) / height) * litBand(depth);
   float fade = smoothstep(m.center.y, m.center.y + height * BASE_FADE, p.y);
-  return mix(behind, field * shade * jitter, coverage * fade);
+  return vec2(field * shade * jitter, coverage * fade);
 }
 
-// One cell's clouds, back to front: a small cloud behind, then the group's
-// tower, then lower masses in front of it to either side.
-float layerCell(float lit, vec2 p, float cell, float pixel) {
+// Layers a mass over brightness premultiplied by coverage (x) and coverage (y).
+vec2 layerMass(vec2 behind, vec2 p, Mass m, float pixel) {
+  vec2 mass = massLayer(p, m, pixel);
+  return mix(behind, vec2(mass.x, 1.0), mass.y);
+}
+
+// Each cell holds a cloud group: a tall tower, with lower masses in front of
+// it to either side. They make two layers that drift at different speeds:
+// behind, the towers with a low bank in each cell reaching toward its
+// neighbours and sometimes a small floating puff; in front, the lower masses.
+struct Tower {
+  float x;
+  float height;
+  float width;
+};
+
+Tower cellTower(float cell, float id) {
+  vec4 h = hash4(vec2(id, 11.0));
+  float height = mix(0.08, 0.2, h.y);
+  return Tower((cell + 0.15 + 0.7 * h.x) * CLOUD_CELL, height, height * mix(0.45, 0.8, h.z));
+}
+
+vec2 layerBackCell(vec2 lit, vec2 p, float cell, float pixel) {
   // Everything random comes from the cell's place in the repeating layout.
   float id = mod(cell, CLOUD_CELLS);
-  vec4 h = hash4(vec2(id, 11.0));
-  float x = (cell + 0.15 + 0.7 * h.x) * CLOUD_CELL;
-  float height = mix(0.08, 0.2, h.y);
-  float width = height * mix(0.45, 0.8, h.z);
-
   vec4 s = hash4(vec2(id, 12.0));
   if (s.w < 0.4) {
-    // A small puff floating clear of the horizon.
     vec2 center = vec2((cell + s.x) * CLOUD_CELL, CLOUD_BASE + mix(0.06, 0.14, s.z));
     vec2 size = vec2(mix(0.015, 0.03, s.y), mix(0.015, 0.03, s.z));
     lit = layerMass(lit, p, Mass(center, size, id * 7.0 + 0.25, false), pixel);
   }
-  // A low, wide bank, reaching toward the neighbouring groups.
   vec2 bankSize = vec2(mix(0.12, 0.2, s.y), mix(0.04, 0.07, s.z));
   lit = layerMass(lit, p, Mass(vec2((cell + 0.5 + 0.3 * (s.x - 0.5)) * CLOUD_CELL, CLOUD_BASE), bankSize, id * 7.0 + 0.5, false), pixel);
+  Tower t = cellTower(cell, id);
+  return layerMass(lit, p, Mass(vec2(t.x, CLOUD_BASE), vec2(t.width, t.height), id * 7.0, true), pixel);
+}
 
-  Mass tower = Mass(vec2(x, CLOUD_BASE), vec2(width, height), id * 7.0, true);
-  lit = layerMass(lit, p, tower, pixel);
-
+vec2 layerFrontCell(vec2 lit, vec2 p, float cell, float pixel) {
+  float id = mod(cell, CLOUD_CELLS);
+  Tower t = cellTower(cell, id);
   for (int i = 1; i <= CLOUD_FRONT_MASSES; i++) {
     vec4 g = hash4(vec2(id * 7.0 + float(i), 31.0));
     if (g.w > 0.9) continue;
     // Each is lower than the last and further out to one side.
     float side = g.x < 0.5 ? -1.0 : 1.0;
-    float rise = height * mix(0.3, 0.75, g.y) * (1.0 - 0.15 * float(i));
+    float rise = t.height * mix(0.3, 0.75, g.y) * (1.0 - 0.15 * float(i));
     vec2 size = vec2(rise * mix(0.8, 1.4, g.z), rise);
     // Some sit partway up the tower's side rather than on the horizon.
     float lift = rise * 0.5 * max(fract(g.y * 13.0) - 0.4, 0.0);
-    vec2 center = vec2(x + side * width * mix(0.2, 0.9, fract(g.x * 7.0)), CLOUD_BASE + lift);
+    vec2 center = vec2(t.x + side * t.width * mix(0.2, 0.9, fract(g.x * 7.0)), CLOUD_BASE + lift);
     lit = layerMass(lit, p, Mass(center, size, id * 7.0 + float(i), false), pixel);
   }
   return lit;
 }
 
-// How much light the clouds add at p, before tinting. pixel is the size of
-// a pixel in radians, which sets the width of crisp edges.
-float cloudBrightness(vec2 p, float pixel) {
-  if (p.y > STRIP_TOP) return 0.0;
-  float lit = 0.0;
-  float base = floor(p.x / CLOUD_CELL);
+// How much light each layer adds at p, before tinting: the back layer's
+// brightness (x), and the front's brightness premultiplied by its coverage
+// (y) and that coverage (z), so it can go over the layer behind. pixel is the size of a pixel in radians, which sets the width of
+// crisp edges.
+vec3 cloudLayers(vec2 back, vec2 front, float pixel) {
+  vec3 layers = vec3(0.0);
   // Groups reach past their neighbouring cells.
-  for (int j = -2; j <= 2; j++) {
-    lit = layerCell(lit, p, base + float(j), pixel);
+  if (back.y <= STRIP_TOP) {
+    float base = floor(back.x / CLOUD_CELL);
+    vec2 lit = vec2(0.0);
+    for (int j = -2; j <= 2; j++) lit = layerBackCell(lit, back, base + float(j), pixel);
+    layers.x = lit.x;
   }
-  return lit;
+  if (front.y <= STRIP_TOP) {
+    float base = floor(front.x / CLOUD_CELL);
+    for (int j = -2; j <= 2; j++) layers.yz = layerFrontCell(layers.yz, front, base + float(j), pixel);
+  }
+  return layers;
 }
 
-// The clouds baked once into a strip covering one period of the layout,
-// which wraps horizontally. Without it they're computed for every pixel.
-uniform sampler2D uCloudStrip;
+// The layers baked once into strips covering one period of the layout,
+// which wrap horizontally: the back layer's brightness (r), and the front's
+// premultiplied brightness (r) and coverage (g). Without them, the clouds
+// are computed for every pixel.
+uniform sampler2D uCloudBack;
+uniform sampler2D uCloudFront;
 uniform bool uUseCloudStrip;
 
 vec3 skyWithClouds(vec3 rd) {
   vec3 skyColor = sky(rd);
-  vec2 p = vec2(atan(rd.x, rd.z) - uTime * CLOUD_DRIFT * uWind, rd.y);
-  if (p.y > STRIP_TOP) return skyColor;
-  float lit;
+  if (rd.y > STRIP_TOP) return skyColor;
+  float azimuth = atan(rd.x, rd.z);
+  float drift = uTime * CLOUD_DRIFT * uWind;
+  vec2 back = vec2(azimuth - drift * uBackCloudSpeed, rd.y);
+  vec2 front = vec2(azimuth - drift - FRONT_OFFSET, rd.y);
+  vec3 layers;
   if (uUseCloudStrip) {
-    vec2 uv = vec2(p.x / CLOUD_PERIOD, (p.y - STRIP_BOTTOM) / (STRIP_TOP - STRIP_BOTTOM));
-    lit = texture(uCloudStrip, uv).r * STRIP_SCALE;
+    float v = (rd.y - STRIP_BOTTOM) / (STRIP_TOP - STRIP_BOTTOM);
+    layers.x = texture(uCloudBack, vec2(back.x / CLOUD_PERIOD, v)).r;
+    layers.yz = texture(uCloudFront, vec2(front.x / CLOUD_PERIOD, v)).rg;
+    layers.xy *= STRIP_SCALE;
   } else {
-    lit = cloudBrightness(p, uRenderScale / (uResolution.y * FOCAL_LENGTH));
+    layers = cloudLayers(back, front, uRenderScale / (uResolution.y * FOCAL_LENGTH));
   }
-  return skyColor + CLOUD_TINT * lit;
+  return skyColor + CLOUD_TINT * (layers.y + layers.x * (1.0 - layers.z));
 }
 `;
