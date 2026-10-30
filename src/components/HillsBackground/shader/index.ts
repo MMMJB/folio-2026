@@ -1,3 +1,4 @@
+import { book, bookShading } from "./book";
 import { camera } from "./camera";
 import { clouds } from "./clouds";
 import { common } from "./common";
@@ -42,8 +43,12 @@ uniform bool uUseEntry;
 
 // Returns the colour, and the hit distance in w.
 vec4 render(vec3 ro, vec3 rd) {
+  setupBook(ro, rd);
   vec2 start = uUseEntry ? texelFetch(uEntry, ivec2(gl_FragCoord.xy), 0).xy : marchToGrass(ro, rd);
   float t = marchFur(ro, rd, start);
+  // Blades in front of the book stop the march first.
+  float tBook = bookHit(ro, rd);
+  if (tBook < t) return vec4(shadeBook(ro, rd, tBook), tBook);
   if (t >= FAR) return vec4(skyWithClouds(rd), FAR);
   return vec4(shadeFur(ro + rd * t, rd, t), t);
 }
@@ -96,9 +101,29 @@ ${camera}
 ${wind}
 ${trample}
 ${flowers}
+${book}
 ${fur}
+${bookShading}
 ${clouds}
 ${main}`;
+
+// The ground under the book and the camera's height: x and y of one pixel,
+// read back once so the page can place a link over the book (see
+// bookOutline in book.ts).
+const bookGround = /* glsl */ `
+uniform vec2 uBookPosition;
+out vec4 fragColor;
+
+void main() {
+  fragColor = vec4(terrain(uBookPosition), cameraOrigin().y, 0.0, 1.0);
+}
+`;
+
+export const bookGroundShader = `#version 300 es
+${common}
+${terrain}
+${camera}
+${bookGround}`;
 
 export const pickShader = `#version 300 es
 ${common}
@@ -135,6 +160,7 @@ ${camera}
 ${wind}
 ${trample}
 ${flowers}
+${book}
 ${fur}
 ${entry}`;
 
@@ -193,5 +219,6 @@ ${camera}
 ${wind}
 ${trample}
 ${flowers}
+${book}
 ${fur}
 ${contour}`;

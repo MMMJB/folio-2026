@@ -1,6 +1,14 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { cn } from "@/util/ui";
 import { createHillsRenderer, type HillsRenderer } from "./renderer";
@@ -14,6 +22,7 @@ const MAX_PIXEL_RATIO = 2;
 export default function HillsBackground({
   seed = 0.37,
   trampleRadius = 2.5,
+  book,
   className,
   sectionClassName,
   children,
@@ -22,6 +31,8 @@ export default function HillsBackground({
   // Radius in metres of the grass the cursor disturbs. It's a size in the
   // scene, so it looks smaller the further away the cursor is.
   trampleRadius?: number;
+  // Makes the book in the grass a link: it opens while hovered or focused.
+  book?: { href: string; label: string };
   className?: string;
   sectionClassName?: string;
   children?: ReactNode;
@@ -31,6 +42,10 @@ export default function HillsBackground({
   const rendererRef = useRef<HillsRenderer | null>(null);
   const trampleRadiusRef = useRef(trampleRadius);
   const [ready, setReady] = useState(false);
+  // Where the book lands on screen; the link sits over it.
+  const [bookOutline, setBookOutline] = useState<[number, number][] | null>(
+    null,
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -49,6 +64,7 @@ export default function HillsBackground({
       if (drawnSize === `${width}x${height}`) return;
       drawnSize = `${width}x${height}`;
       renderer.resize(width, height);
+      setBookOutline(renderer.bookOutline());
     });
     observer.observe(canvas);
 
@@ -147,6 +163,9 @@ export default function HillsBackground({
       <div ref={sectionRef} className={cn("relative", sectionClassName)}>
         {children}
       </div>
+      {book && bookOutline && (
+        <BookLink {...book} outline={bookOutline} rendererRef={rendererRef} />
+      )}
       <canvas
         ref={canvasRef}
         aria-hidden
@@ -157,5 +176,54 @@ export default function HillsBackground({
         )}
       />
     </>
+  );
+}
+
+// A link over the book, clipped to its outline on screen (fractions of the
+// canvas, which fills the viewport). The canvas can't take pointer events,
+// so this gives the book its cursor, clicks, taps and keyboard focus.
+function BookLink({
+  href,
+  label,
+  outline,
+  rendererRef,
+}: {
+  href: string;
+  label: string;
+  outline: [number, number][];
+  rendererRef: RefObject<HillsRenderer | null>;
+}) {
+  const xs = outline.map(([x]) => x);
+  const ys = outline.map(([, y]) => y);
+  const [left, top] = [Math.min(...xs), Math.min(...ys)];
+  const [width, height] = [Math.max(...xs) - left, Math.max(...ys) - top];
+  const clip = outline
+    .map(
+      ([x, y]) =>
+        `${((x - left) / width) * 100}% ${((y - top) / height) * 100}%`,
+    )
+    .join(", ");
+  const hold = (held: boolean) => () => rendererRef.current?.setBookHeld(held);
+
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      onPointerEnter={hold(true)}
+      onPointerLeave={hold(false)}
+      onFocus={hold(true)}
+      onBlur={hold(false)}
+      // Unclipped while focused, so the focus ring shows.
+      className="fixed z-20 [clip-path:var(--book-clip)] focus-visible:[clip-path:none]"
+      style={
+        {
+          left: `${left * 100}%`,
+          top: `${top * 100}%`,
+          width: `${width * 100}%`,
+          height: `${height * 100}%`,
+          "--book-clip": `polygon(${clip})`,
+        } as CSSProperties
+      }
+    />
   );
 }

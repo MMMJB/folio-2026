@@ -60,7 +60,7 @@ export type Motes = {
   dispose: () => void;
 };
 
-const hexToRgb = (hex: string) => {
+export const hexToRgb = (hex: string) => {
   const value = parseInt(hex.replace("#", ""), 16) || 0;
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255].map(
     (channel) => channel / 255,

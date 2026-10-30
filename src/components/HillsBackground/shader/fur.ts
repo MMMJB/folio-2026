@@ -107,12 +107,12 @@ float bladesAt(vec2 xz, float t, vec2 wind) {
   return mix(fine, coarse, fract(level));
 }
 
-// gust is the gust strength along this ray, and trampled and push are
-// trampleAt's at xz; see marchFur.
-bool fiberAt(vec2 xz, float h, float len, float cellSize, float gust, float trampled, vec2 push) {
+// gust is the gust strength along this ray, trampled and push are
+// trampleAt's at xz, and press is bookPress's; see marchFur.
+bool fiberAt(vec2 xz, float h, float len, float cellSize, float gust, float trampled, vec2 push, float press) {
   vec2 wind = uWind > 0.0 ? windAt(xz, gust) : WIND;
   wind += push * trampled * TRAMPLE_LEAN;
-  float heightScale = mix(1.0, TRAMPLE_HEIGHT, trampled);
+  float heightScale = mix(1.0, TRAMPLE_HEIGHT, trampled) * (1.0 - 0.6 * press);
   vec2 q = (xz - wind * h * h / len) / cellSize;
   vec2 cell = floor(q);
   // The direction field varies over metres and cells are centimetres apart,
@@ -217,12 +217,13 @@ float marchFur(vec3 ro, vec3 rd, vec2 start) {
       // Shared by the blades and the flowers.
       vec2 push;
       float trampled = trampleAt(p.xz, push);
-      if (fiberAt(p.xz, h, len, fiberCellSize(t), gust, trampled, push)) return t;
+      float press = bookNear ? bookPress(p.xz) : 0.0;
+      if (fiberAt(p.xz, h, len, fiberCellSize(t), gust, trampled, push, press)) return t;
       // Step by fiber width, not length, so tall blades are sampled along
       // their whole height instead of breaking into dots.
       float step = len * FIBER_WIDTH * uFiberStep;
 #if FLOWERS
-      if (t < FLOWER_FAR) {
+      if (t < FLOWER_FAR && press < 0.5) {
         float flower = flowerHit(ro, rd, p, h, len, furLevel(t), t + step, flowerDensity, gust, trampled, push);
         if (flower > 0.0) {
           hitFlower = true;
@@ -252,7 +253,7 @@ vec3 grassRamp(float tone) {
 vec3 shadeFur(vec3 p, vec3 rd, float t) {
   vec3 n = terrainNormal(p, t);
 
-  float shadow = smoothstep(0.2, 0.8, softShadow(p + n * 0.2));
+  float shadow = smoothstep(0.2, 0.8, softShadow(p + n * 0.2)) * bookShadow(p);
   float light = smoothstep(TERMINATOR.x, TERMINATOR.y, dot(n, SUN)) * mix(SHADOW_FLOOR, 1.0, shadow);
 
   // Patches of grass combed in slightly different directions catch the sheen

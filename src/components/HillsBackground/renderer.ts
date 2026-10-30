@@ -6,6 +6,13 @@ import {
   type Program,
   resizeTarget,
 } from "./gl";
+import {
+  bookOpenSeconds,
+  bookOutline,
+  type BookSettings,
+  DEFAULT_BOOK,
+  setBookUniforms,
+} from "./book";
 import { createCloudStrip } from "./cloudStrip";
 import { createContourBake } from "./contour";
 import { createEntryBake } from "./entry";
@@ -13,6 +20,7 @@ import { createMotes, DEFAULT_MOTES, type MoteSettings } from "./motes";
 import { createTrample } from "./pointer";
 import {
   blurAt,
+  bookGroundShader,
   dofShader,
   fragmentShader,
   heightmapShader,
@@ -119,6 +127,13 @@ export type HillsRenderer = {
   // Trample radius in metres on the ground.
   setTrampleRadius: (radius: number) => void;
   setMotes: (motes: Partial<MoteSettings>) => void;
+  setBook: (book: Partial<BookSettings>) => void;
+  // Opens the book while held, as when the cursor is over it.
+  setBookHeld: (held: boolean) => void;
+  // Where the book lands on screen, open or closed, as a polygon in fractions
+  // of the canvas (x right, y down); null when it's hidden or out of view.
+  // It changes only when the canvas is resized or the book moves.
+  bookOutline: () => [number, number][] | null;
   // The section the canvas sits over, or null to cover the page entirely.
   setSection: (section: NestledSection | null) => void;
   dispose: () => void;
@@ -207,6 +222,10 @@ export function createHillsRenderer(
     gl.uniform1i(uniform("uUseHeightmap"), heightmap ? 1 : 0);
     gl.uniform1i(uniform("uHeightmapLinear"), heightmapLinear ? 1 : 0);
   };
+  let bookSettings = { ...DEFAULT_BOOK };
+  // 0 closed to 1 open; eases toward open while held.
+  let bookOpen = 0;
+  let bookHeld = false;
   const trample = createTrample(gl, bindTerrain);
   const entry = createEntryBake(gl, JITTER, bindTerrain);
   const clouds = createCloudStrip(gl, seed);
@@ -234,6 +253,7 @@ export function createHillsRenderer(
   let idle = false;
   let compositeFrame = 0;
   const startTime = performance.now();
+  let lastTick = startTime;
 
   const time = () => (performance.now() - startTime) / 1000;
 
@@ -259,6 +279,7 @@ export function createHillsRenderer(
     gl.uniform4f(scene.uniform("uSkip"), ...skip);
     gl.uniform1f(scene.uniform("uTime"), time());
     bindTerrain(scene);
+    setBookUniforms(gl, scene, bookSettings, bookOpen);
     trample?.setUniforms(scene);
     entry?.setUniforms(scene);
     clouds?.setUniforms(scene);
@@ -355,10 +376,77 @@ export function createHillsRenderer(
     });
   };
 
+  // Moves the book's opening along; returns whether it's moving.
+  const updateBook = () => {
+    const now = performance.now();
+    // Clamped so a long idle gap doesn't count as opening time.
+    const elapsed = Math.min((now - lastTick) / 1000, 0.1);
+    lastTick = now;
+    const target = bookHeld ? 1 : 0;
+    if (bookOpen === target) return false;
+    const step = elapsed / bookOpenSeconds(bookSettings);
+    bookOpen =
+      target > bookOpen
+        ? Math.min(bookOpen + step, 1)
+        : Math.max(bookOpen - step, 0);
+    return true;
+  };
+
+  // The terrain height under the book and the camera's height, read back
+  // once per book position; null until then, or without float render
+  // targets.
+  let bookGround: [number, number] | null = null;
+  const measureBookGround = (): [number, number] | null => {
+    if (!gl.getExtension("EXT_color_buffer_float")) return null;
+    const program = createProgram(gl, bookGroundShader);
+    if (!program) return null;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA32F,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.FLOAT,
+      null,
+    );
+    const framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      texture,
+      0,
+    );
+    gl.viewport(0, 0, 1, 1);
+    gl.useProgram(program.program);
+    bindTerrain(program);
+    gl.uniform2f(
+      program.uniform("uBookPosition"),
+      bookSettings.x,
+      bookSettings.z,
+    );
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const result = new Float32Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, result);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(framebuffer);
+    gl.deleteTexture(texture);
+    gl.deleteProgram(program.program);
+    return [result[0], result[1]];
+  };
+
   const tick = () => {
     const trampling = trample?.update() ?? "still";
-    // Springing back is slow enough to keep the full blend.
-    const nextBlend = trampling === "pressing" ? PRESSING_BLEND : JITTER.length;
+    const opening = updateBook();
+    // Springing back is slow enough to keep the full blend; the book moves
+    // too fast.
+    const nextBlend =
+      trampling === "pressing" || opening ? PRESSING_BLEND : JITTER.length;
     if (nextBlend !== blend) {
       // Frames rendered before the switch may be stale: the two-frame blend
       // reuses only the two most recent slots, and the full blend starts
@@ -376,6 +464,7 @@ export function createHillsRenderer(
 
     const converged =
       trampling === "still" &&
+      !opening &&
       frame >= JITTER.length &&
       (clouds?.ready() ?? true);
     if (running || !converged) animationFrame = requestAnimationFrame(tick);
@@ -436,6 +525,22 @@ export function createHillsRenderer(
       moteSettings = { ...moteSettings, ...next };
       // A still scene redraws once to show them.
       if (!running) schedule();
+    },
+    setBook: (next) => {
+      if (next.x !== undefined || next.z !== undefined) bookGround = null;
+      bookSettings = { ...bookSettings, ...next };
+      frame = 0;
+      schedule();
+    },
+    bookOutline: () => {
+      if (width === 0 || height === 0) return null;
+      bookGround ??= measureBookGround();
+      if (!bookGround) return null;
+      return bookOutline(bookSettings, ...bookGround, width / height);
+    },
+    setBookHeld: (held) => {
+      bookHeld = held;
+      schedule();
     },
     setSection: (next) => {
       section = next;

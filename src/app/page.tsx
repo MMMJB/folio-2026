@@ -44,7 +44,10 @@ export default function Home() {
       {/* The section runs to the bottom of the page, where its padding sinks
           behind the midground hill. */}
       <div className="flex min-h-dvh flex-col items-center sm:pt-[24dvh]">
-        <HillsBackground sectionClassName="w-max max-w-full flex-1 bg-[linear-gradient(4deg,rgba(0_0_0/20%)_11%,white_31%)] px-6 pt-8 sm:pb-[24dvh] sm:px-12">
+        <HillsBackground
+          book={{ href: "/writing", label: "Writing" }}
+          sectionClassName="w-max max-w-full flex-1 bg-[linear-gradient(4deg,rgba(0_0_0/20%)_11%,white_31%)] px-6 pt-8 sm:pb-[24dvh] sm:px-12"
+        >
           <main className="grid max-w-xl grid-cols-1 gap-y-5 underline-offset-4 sm:grid-cols-3 sm:text-pretty">
             <div>
               <h1>Michael Beck</h1>
