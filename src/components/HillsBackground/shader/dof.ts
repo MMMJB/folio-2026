@@ -2,7 +2,8 @@
 // a spiral out to the maximum blur radius; a sample contributes when its own
 // blur disc would reach this pixel. Samples blurrier than this pixel are
 // limited so distant hills don't smear over sharper ones in front of them.
-// It's the last pass, so it also cuts the nestled section out of the canvas.
+// It's the last pass, so it also cuts the nestled section out of the canvas
+// and lays noise over the scene.
 export const dofShader = /* glsl */ `#version 300 es
 precision highp float;
 
@@ -46,6 +47,17 @@ const float REFERENCE_HEIGHT = 900.0;
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+// A sheet of white pixels of random alpha over the scene, at this opacity in
+// overlay blend mode: it lightens each pixel toward twice its value, or to
+// white in its brighter half, by its pixel's alpha times this.
+const float NOISE_OPACITY = 0.15;
+
+vec3 grain(vec3 color) {
+  float alpha = hash(gl_FragCoord.xy + 17.31);
+  vec3 overlay = mix(min(2.0 * color, 1.0), vec3(1.0), step(0.5, color));
+  return mix(color, overlay, NOISE_OPACITY * alpha);
 }
 
 // 1 where the scene is nearer than the nestled section, from its blur amount.
@@ -106,6 +118,7 @@ void main() {
   }
   color /= total;
   front /= total;
+  color = grain(color);
 
   float dither = (hash(gl_FragCoord.xy) - 0.5) / 255.0;
   color += dither;
@@ -121,7 +134,7 @@ void main() {
   // The section is page content and stays sharp, so where the hill meets it
   // the two read as in focus together: the hill keeps its blurred colour, but
   // its outline is only antialiased, over about a scene pixel.
-  vec3 hill = front.a > 1e-4 ? front.rgb / front.a : color;
+  vec3 hill = front.a > 1e-4 ? grain(front.rgb / front.a) : color;
   front = vec4(hill + dither, 1.0) * crestCoverage(uv, center.a) * buried;
   float occlusion = 0.0;
   if (uUseContour) {

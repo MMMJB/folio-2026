@@ -85,6 +85,9 @@ export type HillsQuality = {
   // Drift speed of the far cloud layer as a fraction of the near one's; at
   // 1 they move together.
   backCloudSpeed: number;
+  // Radians the clouds start shifted to the right, at the start of their
+  // drift. The layout repeats every CLOUD_PERIOD.
+  cloudOffset: number;
   // Multiplies the depth of field sample spacing.
   blurSpacing: number;
   // Largest depth of field blur radius, as a fraction of the frame height.
@@ -99,6 +102,7 @@ export const FULL_QUALITY: HillsQuality = {
   maxSteps: 2000,
   windStrength: 1,
   backCloudSpeed: 0.45,
+  cloudOffset: 0,
   blurSpacing: 1,
   blurStrength: 0.006,
 };
@@ -111,6 +115,7 @@ export const DEFAULT_QUALITY: HillsQuality = {
   maxSteps: 600,
   windStrength: 1.55,
   backCloudSpeed: 0.45,
+  cloudOffset: 0.23,
   blurSpacing: 3,
   blurStrength: 0.01,
 };
@@ -275,6 +280,7 @@ export function createHillsRenderer(
     gl.uniform1i(scene.uniform("uMaxSteps"), quality.maxSteps);
     gl.uniform1f(scene.uniform("uWind"), quality.windStrength);
     gl.uniform1f(scene.uniform("uBackCloudSpeed"), quality.backCloudSpeed);
+    gl.uniform1f(scene.uniform("uCloudOffset"), quality.cloudOffset);
     gl.uniform2f(scene.uniform("uJitter"), JITTER[index][0], JITTER[index][1]);
     gl.uniform4f(scene.uniform("uSkip"), ...skip);
     gl.uniform1f(scene.uniform("uTime"), time());

@@ -39,6 +39,7 @@ const int CLOUD_FRONT_MASSES = 4;
 // further away, so it drifts slower, by this fraction of the near one's speed.
 const float CLOUD_DRIFT = 0.0012;
 uniform float uBackCloudSpeed;
+uniform float uCloudOffset;
 // The near layer sits this far right of where its towers place it, in
 // radians: 70 pixels on a view 900 pixels tall.
 const float FRONT_OFFSET = 70.0 / (900.0 * FOCAL_LENGTH);
@@ -308,6 +309,7 @@ vec3 skyWithClouds(vec3 rd) {
   if (rd.y > STRIP_TOP) return skyColor;
   float azimuth = atan(rd.x, rd.z);
   float drift = uTime * CLOUD_DRIFT * uWind;
+  azimuth -= uCloudOffset;
   vec2 back = vec2(azimuth - drift * uBackCloudSpeed, rd.y);
   vec2 front = vec2(azimuth - drift - FRONT_OFFSET, rd.y);
   vec3 layers;
