@@ -51,12 +51,12 @@ void main() {
   vec2 rel = mod(r.xy * box + GUST_DIRECTION * uDrift * uTime, box);
   rel += vec2(-halfWidth, uNear);
 
-  // Each mote loops lazily on its own, and gusts push it further downwind.
+  // Each mote loops lazily on its own, and gusts push it along.
   float phase = 6.2832 * r.z;
   float rate = mix(0.15, 0.45, r.w);
   vec2 xz = CAMERA_POSITION + rel;
   xz += uWander * vec2(sin(uTime * rate + phase), cos(uTime * rate * 0.7 + 2.0 * phase));
-  xz += GUST_DIRECTION * gustAt(xz) * uGust * uWind;
+  xz += gustAt(xz) * uGust * uWind;
 
   // Most motes hang low, a few higher up.
   float lift = mix(MOTE_FLOOR, max(uHeight, MOTE_FLOOR), s.x * s.x);

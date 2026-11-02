@@ -7,7 +7,6 @@ import { BLUR_CURVE, FOCUS_DISTANCE } from "./focus";
 import { fur } from "./fur";
 import { pick } from "./pick";
 import { terrain } from "./terrain";
-import { trample } from "./trample";
 import { wind } from "./wind";
 
 export { dofShader } from "./dof";
@@ -99,7 +98,6 @@ ${common}
 ${terrain}
 ${camera}
 ${wind}
-${trample}
 ${flowers}
 ${book}
 ${fur}
@@ -158,7 +156,6 @@ ${common}
 ${terrain}
 ${camera}
 ${wind}
-${trample}
 ${flowers}
 ${book}
 ${fur}
@@ -217,7 +214,6 @@ ${common}
 ${terrain}
 ${camera}
 ${wind}
-${trample}
 ${flowers}
 ${book}
 ${fur}

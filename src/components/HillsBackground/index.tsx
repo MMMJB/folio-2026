@@ -21,16 +21,16 @@ const MAX_PIXEL_RATIO = 2;
 // section's bottom padding, so content is never covered.
 export default function HillsBackground({
   seed = 0.37,
-  trampleRadius = 2.5,
+  gustRadius = 4,
   book,
   className,
   sectionClassName,
   children,
 }: {
   seed?: number;
-  // Radius in metres of the grass the cursor disturbs. It's a size in the
+  // Radius in metres of the gust that follows the cursor. It's a size in the
   // scene, so it looks smaller the further away the cursor is.
-  trampleRadius?: number;
+  gustRadius?: number;
   // Makes the book in the grass a link: it opens while hovered or focused.
   book?: { href: string; label: string };
   className?: string;
@@ -40,7 +40,7 @@ export default function HillsBackground({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<HillsRenderer | null>(null);
-  const trampleRadiusRef = useRef(trampleRadius);
+  const gustRadiusRef = useRef(gustRadius);
   const [ready, setReady] = useState(false);
   // Where the book lands on screen; the link sits over it.
   const [bookOutline, setBookOutline] = useState<[number, number][] | null>(
@@ -53,7 +53,7 @@ export default function HillsBackground({
       canvas && createHillsRenderer(canvas, seed, () => setReady(true));
     if (!canvas || !renderer) return;
     rendererRef.current = renderer;
-    renderer.setTrampleRadius(trampleRadiusRef.current);
+    renderer.setCursorGust({ radius: gustRadiusRef.current });
 
     let drawnSize = "";
     const observer = new ResizeObserver(() => {
@@ -154,9 +154,9 @@ export default function HillsBackground({
 
   // Kept in a ref too, so a renderer recreated for a new seed starts with it.
   useEffect(() => {
-    trampleRadiusRef.current = trampleRadius;
-    rendererRef.current?.setTrampleRadius(trampleRadius);
-  }, [trampleRadius]);
+    gustRadiusRef.current = gustRadius;
+    rendererRef.current?.setCursorGust({ radius: gustRadius });
+  }, [gustRadius]);
 
   return (
     <>

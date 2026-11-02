@@ -28,8 +28,6 @@ const vec3 FLOWER_SHADE = vec3(0.54, 0.58, 0.5);
 // Stems run from the root to the head; width is in fur lengths.
 const float STEM_WIDTH = 0.025;
 const vec3 STEM_COLOR = vec3(0.1, 0.22, 0.05);
-// How far fully trampled flowers tip from upright, in radians.
-const float FLOWER_TRAMPLE_ANGLE = 1.2;
 // Beyond FLOWER_FAR metres there are no flowers, and marchFur stops testing
 // for them; they thin out over the FLOWER_FADE metres before it, each at its
 // own random point. Past the fiber distance (see HillsQuality) there are none
@@ -81,7 +79,7 @@ float segmentHit(vec3 ro, vec3 rd, vec3 a, vec3 b, float radius) {
 // sway is how far gusts push heads here, and bend is how much of that applies
 // at p's height. The cell is looked up where p would be before bending, so a
 // head blown out of its cell is still found.
-float flowerAtLevel(vec3 ro, vec3 rd, vec3 p, float h, float len, float level, float grid, float fade, float farFade, float density, vec2 sway, float bend, float heightScale, float tMax) {
+float flowerAtLevel(vec3 ro, vec3 rd, vec3 p, float h, float len, float level, float grid, float fade, float farFade, float density, vec2 sway, float bend, float tMax) {
   float cellSize = FLOWER_SPACING * exp2(level);
   float angle = level * 2.4 + grid * 1.1;
   mat2 rotation = mat2(cos(angle), sin(angle), -sin(angle), cos(angle));
@@ -95,7 +93,7 @@ float flowerAtLevel(vec3 ro, vec3 rd, vec3 p, float h, float len, float level, f
   vec2 root = (cell + 0.2 + 0.6 * r.zw - offset) * cellSize * rotation;
 
   float ground = p.y - h;
-  float height = len * FLOWER_HEIGHT * heightScale * mix(0.8, 1.2, fract(r.y * 13.7));
+  float height = len * FLOWER_HEIGHT * mix(0.8, 1.2, fract(r.y * 13.7));
   vec3 center = vec3(root.x + sway.x, ground + height, root.y + sway.y);
   float radius = len * FLOWER_RADIUS;
 
@@ -119,28 +117,22 @@ float flowerDensityAt(vec2 xz) {
 }
 
 // density (flowerDensityAt) and gust span metres, so marchFur looks them up
-// once per ray; trampled and push are trampleAt's at p, shared with the
-// blades.
-float flowerHit(vec3 ro, vec3 rd, vec3 p, float h, float len, float level, float tMax, float density, float gust, float trampled, vec2 push) {
+// once per ray.
+float flowerHit(vec3 ro, vec3 rd, vec3 p, float h, float len, float level, float tMax, float density, vec2 gust) {
   // Skip steps that stay above the tallest head.
   float drop = max(-rd.y, 0.0) * (tMax - distance(ro, p));
   if (h - drop > len * (FLOWER_HEIGHT * 1.2 + FLOWER_RADIUS)) return -1.0;
-  vec2 sway = GUST_DIRECTION * gust * GUST_STRENGTH * uWind * len * FLOWER_SWAY;
-  // Trampled flowers tip over on their stems with the grass, the head
-  // swinging outward and down.
-  float tip = trampled * FLOWER_TRAMPLE_ANGLE;
-  sway += push * sin(tip) * len * FLOWER_HEIGHT;
-  float heightScale = cos(tip);
+  vec2 sway = gust * GUST_STRENGTH * uWind * len * FLOWER_SWAY;
   // Stems lean straight from the root, so the shift grows with height and is
   // complete by the bottom of the shortest head.
-  float bend = clamp(h / max(len * (FLOWER_HEIGHT * heightScale * 0.8 - FLOWER_RADIUS), 1e-4), 0.0, 1.0);
+  float bend = clamp(h / max(len * (FLOWER_HEIGHT * 0.8 - FLOWER_RADIUS), 1e-4), 0.0, 1.0);
   float base = floor(level);
   float fade = fract(level);
   float farFade = smoothstep(FLOWER_FAR - FLOWER_FADE, FLOWER_FAR, distance(ro, p));
   for (int i = 0; i < 4; i++) {
     float grid = float(i / 2);
     float next = float(i % 2);
-    float t = flowerAtLevel(ro, rd, p, h, len, base + next, grid, abs(next - fade), farFade, density, sway, bend, heightScale, tMax);
+    float t = flowerAtLevel(ro, rd, p, h, len, base + next, grid, abs(next - fade), farFade, density, sway, bend, tMax);
     if (t > 0.0) return t;
   }
   return -1.0;

@@ -17,7 +17,7 @@ import { createCloudStrip } from "./cloudStrip";
 import { createContourBake } from "./contour";
 import { createEntryBake } from "./entry";
 import { createMotes, DEFAULT_MOTES, type MoteSettings } from "./motes";
-import { createTrample } from "./pointer";
+import { createTrample, type CursorGust } from "./pointer";
 import {
   blurAt,
   bookGroundShader,
@@ -43,8 +43,8 @@ const JITTER = [
   [0.25, -0.25],
   [-0.25, 0.25],
 ];
-// While the cursor presses new grass, blending four frames makes the trample
-// lag and smear behind it, and blending none visibly roughens the whole
+// While the cursor's gust moves the grass, blending four frames makes it lag
+// and smear, and blending none visibly roughens the whole
 // image; two is the compromise.
 const PRESSING_BLEND = 2;
 
@@ -127,10 +127,12 @@ export type HillsRenderer = {
   // renders until the jitter samples have converged and then idles.
   setRunning: (running: boolean) => void;
   // The cursor, relative to the frame centre in units of the frame height
-  // (y up), or null when it's off the page. The grass under it is trampled.
+  // (y up), or null when it's off the page. A gust blows where it meets the
+  // ground.
   setPointer: (uv: [number, number] | null) => void;
-  // Trample radius in metres on the ground.
-  setTrampleRadius: (radius: number) => void;
+  setCursorGust: (gust: Partial<CursorGust>) => void;
+  // Scales the wind's own gusts, leaving the cursor's; 1 by default.
+  setAmbientGusts: (scale: number) => void;
   setMotes: (motes: Partial<MoteSettings>) => void;
   setBook: (book: Partial<BookSettings>) => void;
   // Opens the book while held, as when the cursor is over it.
@@ -231,6 +233,8 @@ export function createHillsRenderer(
   // 0 closed to 1 open; eases toward open while held.
   let bookOpen = 0;
   let bookHeld = false;
+  // Scales the wind's own gusts; see setAmbientGusts.
+  let ambientGusts = 1;
   const trample = createTrample(gl, bindTerrain);
   const entry = createEntryBake(gl, JITTER, bindTerrain);
   const clouds = createCloudStrip(gl, seed);
@@ -279,6 +283,7 @@ export function createHillsRenderer(
     gl.uniform1f(scene.uniform("uFiberDistance"), quality.fiberDistance);
     gl.uniform1i(scene.uniform("uMaxSteps"), quality.maxSteps);
     gl.uniform1f(scene.uniform("uWind"), quality.windStrength);
+    gl.uniform1f(scene.uniform("uAmbientGusts"), ambientGusts);
     gl.uniform1f(scene.uniform("uBackCloudSpeed"), quality.backCloudSpeed);
     gl.uniform1f(scene.uniform("uCloudOffset"), quality.cloudOffset);
     gl.uniform2f(scene.uniform("uJitter"), JITTER[index][0], JITTER[index][1]);
@@ -449,8 +454,6 @@ export function createHillsRenderer(
   const tick = () => {
     const trampling = trample?.update() ?? "still";
     const opening = updateBook();
-    // Springing back is slow enough to keep the full blend; the book moves
-    // too fast.
     const nextBlend =
       trampling === "pressing" || opening ? PRESSING_BLEND : JITTER.length;
     if (nextBlend !== blend) {
@@ -526,7 +529,14 @@ export function createHillsRenderer(
       // A still scene has stopped drawing; wake it to follow the cursor.
       if (!running) schedule();
     },
-    setTrampleRadius: (radius) => trample?.setRadius(radius),
+    setCursorGust: (next) => {
+      trample?.setGust(next);
+      if (!running) schedule();
+    },
+    setAmbientGusts: (scale) => {
+      ambientGusts = scale;
+      if (!running) schedule();
+    },
     setMotes: (next) => {
       moteSettings = { ...moteSettings, ...next };
       // A still scene redraws once to show them.

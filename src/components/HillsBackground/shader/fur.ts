@@ -107,12 +107,11 @@ float bladesAt(vec2 xz, float t, vec2 wind) {
   return mix(fine, coarse, fract(level));
 }
 
-// gust is the gust strength along this ray, trampled and push are
-// trampleAt's at xz, and press is bookPress's; see marchFur.
-bool fiberAt(vec2 xz, float h, float len, float cellSize, float gust, float trampled, vec2 push, float press) {
+// gust is gustAt's along this ray, and press is bookPress's; see
+// marchFur.
+bool fiberAt(vec2 xz, float h, float len, float cellSize, vec2 gust, float press) {
   vec2 wind = uWind > 0.0 ? windAt(xz, gust) : WIND;
-  wind += push * trampled * TRAMPLE_LEAN;
-  float heightScale = mix(1.0, TRAMPLE_HEIGHT, trampled) * (1.0 - 0.6 * press);
+  float heightScale = 1.0 - 0.6 * press;
   vec2 q = (xz - wind * h * h / len) / cellSize;
   vec2 cell = floor(q);
   // The direction field varies over metres and cells are centimetres apart,
@@ -189,6 +188,11 @@ vec2 marchToGrass(vec3 ro, vec3 rd) {
   return vec2(t, 2000);
 }
 
+// The gust marchFur looked up for its ray, for shadeFur; furGustSet is false
+// when the ray never reached the grass.
+vec2 furGust = vec2(0.0);
+bool furGustSet = false;
+
 // start is marchToGrass's result for this ray.
 float marchFur(vec3 ro, vec3 rd, vec2 start) {
   if (start.x >= FAR) return FAR;
@@ -196,7 +200,8 @@ float marchFur(vec3 ro, vec3 rd, vec2 start) {
   float t = start.x;
   // Gusts and flower patches span metres and a ray crosses the grass over far
   // less, so both are looked up once, where the ray first reaches the grass.
-  float gust = -1.0;
+  furGustSet = false;
+  vec2 gust = vec2(0.0);
   float flowerDensity = 0.0;
   for (int i = int(start.y); i < 2000; i++) {
     if (i >= uMaxSteps) break;
@@ -208,23 +213,22 @@ float marchFur(vec3 ro, vec3 rd, vec2 start) {
     float shell = grassShell(t, len);
     if (h < 0.0) return t;
     if (h < shell) {
-      if (gust < 0.0) {
-        gust = uWind > 0.0 ? gustAt(p.xz) : 0.0;
+      if (!furGustSet) {
+        furGustSet = true;
+        gust = uWind > 0.0 ? gustAt(p.xz) : vec2(0.0);
+        furGust = gust;
 #if FLOWERS
         flowerDensity = flowerDensityAt(p.xz);
 #endif
       }
-      // Shared by the blades and the flowers.
-      vec2 push;
-      float trampled = trampleAt(p.xz, push);
       float press = bookNear ? bookPress(p.xz) : 0.0;
-      if (fiberAt(p.xz, h, len, fiberCellSize(t), gust, trampled, push, press)) return t;
+      if (fiberAt(p.xz, h, len, fiberCellSize(t), gust, press)) return t;
       // Step by fiber width, not length, so tall blades are sampled along
       // their whole height instead of breaking into dots.
       float step = len * FIBER_WIDTH * uFiberStep;
 #if FLOWERS
       if (t < FLOWER_FAR && press < 0.5) {
-        float flower = flowerHit(ro, rd, p, h, len, furLevel(t), t + step, flowerDensity, gust, trampled, push);
+        float flower = flowerHit(ro, rd, p, h, len, furLevel(t), t + step, flowerDensity, gust);
         if (flower > 0.0) {
           hitFlower = true;
           return flower;
@@ -261,20 +265,18 @@ vec3 shadeFur(vec3 p, vec3 rd, float t) {
   float patches = noise(p.xz * 0.12 + 11.0) * 0.6 + noise(p.xz * 0.5 + 23.0) * 0.4;
   float sheen = pow(1.0 - max(dot(n, -rd), 0.0), 4.0) * mix(0.6, 1.3, patches);
 
-  // Grass pressed over by a gust catches a little more light.
-  float gust = uWind > 0.0 ? gustAt(p.xz) : 0.0;
-  sheen *= 1.0 + 0.9 * gust * uWind;
+  // Grass pressed over by a gust catches a little more light. The gust spans
+  // metres, so marchFur's, from where the ray reached the grass, serves here.
+  vec2 gust = furGustSet ? furGust : uWind > 0.0 ? gustAt(p.xz) : vec2(0.0);
+  float gustStrength = length(gust);
+  sheen *= 1.0 + 0.9 * gustStrength * uWind;
 
-  vec2 push;
-  float trampled = trampleAt(p.xz, push);
-  float blades = bladesAt(p.xz, t, windAt(p.xz, gust) + push * trampled * TRAMPLE_LEAN);
+  float blades = bladesAt(p.xz, t, windAt(p.xz, gust));
   float bladeContrast = mix(0.35, 1.0, light);
   float detail = mix(1.0 - BLADE_CONTRAST * bladeContrast, 1.0 + BLADE_CONTRAST * 0.6 * bladeContrast, blades);
-  detail = mix(detail, 1.0, trampled * TRAMPLE_SMOOTH);
 
-  float tone = mix(TONE_RANGE.x, TONE_RANGE.y, light) * mix(0.92, 1.06, patches) * (1.0 + 0.04 * gust * uWind) * detail;
+  float tone = mix(TONE_RANGE.x, TONE_RANGE.y, light) * mix(0.92, 1.06, patches) * (1.0 + 0.04 * gustStrength * uWind) * detail;
   tone += sheen * SHEEN_STRENGTH * light * mix(0.6, 1.2, blades);
-  tone *= 1.0 + trampled * (TRAMPLE_LIGHTEN + TRAMPLE_SHEEN * dot(push, normalize(rd.xz)));
   tone += SHADOW_LIFT * (1.0 - light) * (1.0 - light);
   vec3 color = hitFlower ? flowerColor(light) : grassRamp(tone);
 

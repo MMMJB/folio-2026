@@ -3,8 +3,7 @@ import { cloudStripShader } from "./shader";
 import { CLOUD_PERIOD, STRIP_BOTTOM, STRIP_TOP } from "./shader/clouds";
 import { FOCAL_LENGTH } from "./shader/common";
 
-// Units 0-3 hold the scene frames, 4 the heightmap, 6 the entry bake and 7
-// the trample trail.
+// Units 0-3 hold the scene frames, 4 the heightmap and 6 the entry bake.
 const BACK_UNIT = 5;
 const FRONT_UNIT = 8;
 // Strip texels per scene pixel. At two, the baked clouds match ones computed

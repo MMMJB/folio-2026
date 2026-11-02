@@ -90,6 +90,7 @@ export function createMotes(
       gl.uniform1f(uniform("uRenderScale"), 1);
       gl.uniform1f(uniform("uTime"), frame.time);
       gl.uniform1f(uniform("uWind"), frame.windStrength);
+      gl.uniform1f(uniform("uAmbientGusts"), 1);
       gl.uniform1f(uniform("uMaxBlur"), frame.maxBlur);
       gl.uniform1f(uniform("uMaxPointSize"), maxPointSize);
       gl.uniform1f(uniform("uSize"), settings.size);
